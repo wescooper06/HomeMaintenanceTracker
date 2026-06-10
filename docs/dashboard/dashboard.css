@@ -1,0 +1,296 @@
+:root {
+  color-scheme: light dark;
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --text: #0f172a;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --primary: #2563eb;
+  --accent: #f59e0b;
+  --success: #16a34a;
+  --danger: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #020617;
+    --surface: #0f172a;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --border: #1e293b;
+    --primary: #60a5fa;
+    --accent: #fbbf24;
+    --success: #22c55e;
+    --danger: #f87171;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--background);
+  color: var(--text);
+}
+
+.dashboard-header,
+.dashboard-filters,
+.bulk-actions,
+.chart-grid {
+  padding: 1.25rem 1.5rem;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+}
+
+.dashboard-header p {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+}
+
+.dashboard-header button,
+.bulk-actions button {
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  padding: 0.9rem 1.4rem;
+  cursor: pointer;
+}
+
+.dashboard-filters {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+#dashboard-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+  color: var(--text);
+}
+
+.dashboard-controls {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.dashboard-controls select {
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+  color: var(--text);
+}
+
+.bulk-actions {
+  display: grid;
+  gap: 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.bulk-actions div {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bulk-actions label {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.bulk-actions select {
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--background);
+  color: var(--text);
+}
+
+.table-panel {
+  overflow-x: auto;
+}
+
+#task-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1100px;
+}
+
+#task-table th,
+#task-table td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+#task-table th {
+  background: rgba(37, 99, 235, 0.08);
+  cursor: pointer;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+#task-table tr:hover {
+  background: rgba(37, 99, 235, 0.06);
+}
+
+#task-table td input,
+#task-table td select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+#task-table td input[type="checkbox"] {
+  width: auto;
+}
+
+.chart-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.chart-card {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 1.25rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.chart-card h2 {
+  margin-top: 0;
+}
+
+@media (min-width: 960px) {
+  .dashboard-filters {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+  }
+
+  .dashboard-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 220px));
+  }
+
+  .chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.hidden {
+  display: none !important;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.modal-content {
+  width: min(100%, 760px);
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 1.5rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-grid input,
+.form-grid textarea,
+.form-grid select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+.form-grid textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.form-actions button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.9rem 1.4rem;
+  cursor: pointer;
+}
+
+.form-actions button[type="button"] {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.form-actions button[type="submit"] {
+  background: var(--primary);
+  color: white;
+}

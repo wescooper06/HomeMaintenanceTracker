@@ -1,0 +1,269 @@
+:root {
+  color-scheme: light dark;
+  --background: #f7f9fc;
+  --surface: #ffffff;
+  --text: #1d2939;
+  --muted: #64748b;
+  --primary: #2563eb;
+  --accent: #f59e0b;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --border: #d1d5db;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --surface: #111827;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --primary: #60a5fa;
+    --accent: #fbbf24;
+    --success: #22c55e;
+    --danger: #f87171;
+    --border: #334155;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--background);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.app-header p {
+  margin: 0.25rem 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.controls,
+.task-actions {
+  padding: 1rem;
+}
+
+#search-input {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.filter-row {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.filter-row select {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.task-actions {
+  display: flex;
+  justify-content: center;
+}
+
+#open-add-form,
+#refresh-button,
+.cta-button,
+.modal-content button {
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  padding: 0.9rem 1.3rem;
+  cursor: pointer;
+}
+
+#open-add-form:hover,
+#refresh-button:hover,
+.cta-button:hover,
+.modal-content button:hover {
+  opacity: 0.95;
+}
+
+#task-container {
+  padding: 0 1rem 2rem;
+}
+
+.property-group {
+  margin-bottom: 1.5rem;
+}
+
+.property-group h2 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.task-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  margin-bottom: 0.9rem;
+}
+
+.task-card .task-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.task-card strong {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-high { background: #f87171; color: white; }
+.badge-medium { background: #facc15; color: #111827; }
+.badge-low { background: #34d399; color: #0f172a; }
+.badge-state { background: rgba(37, 99, 235, 0.12); color: var(--text); }
+
+.task-card small {
+  color: var(--muted);
+}
+
+.task-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.task-buttons button {
+  flex: 1 1 140px;
+  padding: 0.8rem 1rem;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.task-buttons button.complete-button { background: var(--success); color: white; }
+.task-buttons button.delete-button { background: var(--danger); color: white; }
+.task-buttons button:hover {
+  opacity: 0.95;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 20;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  width: min(100%, 620px);
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 1.25rem;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.2);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.9rem 1rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+.form-grid textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.form-actions button {
+  width: 100%;
+}
+
+@media (min-width: 720px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-grid label:nth-child(6) {
+    grid-column: span 2;
+  }
+}

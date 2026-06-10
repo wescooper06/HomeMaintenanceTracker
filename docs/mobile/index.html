@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home Maintenance Tracker - Mobile</title>
+  <link rel="stylesheet" href="mobile.css" />
+  <script>
+    window.GOOGLE_OAUTH_CLIENT_ID = '902309416260-4v04g0nc6fa4lt9otb2gm4ijkfhgoc1s.apps.googleusercontent.com';
+    window.GOOGLE_SPREADSHEET_ID = '18la6E47KuiFWXFSIASd8QYbvxEo-ZJ7RaxnnuxIml9k';
+  </script>
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Home Maintenance Tracker</h1>
+      <p>Mobile view for property tasks</p>
+    </div>
+    <button id="refresh-button" type="button">Refresh</button>
+  </header>
+
+  <section class="controls">
+    <input id="search-input" type="search" placeholder="Search tasks..." />
+    <div class="filter-row">
+      <select id="filter-property">
+        <option value="">All Properties</option>
+      </select>
+      <select id="filter-priority">
+        <option value="">All Priorities</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <select id="filter-category">
+        <option value="">All Categories</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="task-actions">
+    <button id="open-add-form" type="button">Add Task</button>
+  </section>
+
+  <main id="task-container"></main>
+
+  <div id="task-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="modal-title">Add Task</h2>
+      <form id="task-form">
+          <div class="form-grid">
+          <label>Property<select name="property" required></select></label>
+          <label>Interior/Exterior<select name="interiorExterior"></select></label>
+          <label>Upstairs/Downstairs<select name="upstairsDownstairs"></select></label>
+          <label>Area<select name="area"></select></label>
+          <label>Category<select name="category"></select></label>
+          <label>Task Description<textarea name="description" required></textarea></label>
+          <label>Priority<select name="priority">
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select></label>
+          <label>Order<input name="order" /></label>
+          <label>Cost ($)<input name="cost" type="number" step="0.01" min="0" /></label>
+          <label>State<select name="state">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Complete">Complete</option>
+            </select></label>
+        </div>
+        <div class="form-actions">
+          <button type="submit">Save Task</button>
+          <button id="close-modal" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="mobile.js"></script>
+</body>
+</html>
