@@ -65,6 +65,11 @@ function renderFilters() {
 
   elements.filterProperty.innerHTML = '<option value="">All Properties</option>' + properties.map((property) => `<option value="${property}">${property}</option>`).join('');
   elements.filterCategory.innerHTML = '<option value="">All Categories</option>' + categories.map((category) => `<option value="${category}">${category}</option>`).join('');
+  setSelectOptions(elements.taskForm.property, properties, 'Choose property');
+  setSelectOptions(elements.taskForm.interiorExterior, getUniqueOptions('interiorExterior'), 'Choose interior/exterior');
+  setSelectOptions(elements.taskForm.upstairsDownstairs, getUniqueOptions('upstairsDownstairs'), 'Choose up/down');
+  setSelectOptions(elements.taskForm.area, getUniqueOptions('area'), 'Choose area');
+  setSelectOptions(elements.taskForm.category, categories, 'Choose category');
 }
 
 function filterTasks() {
@@ -85,6 +90,26 @@ function filterTasks() {
     })
     .sort((a, b) => a.description.localeCompare(b.description));
 }
+
+  function getUniqueOptions(field) {
+    return Array.from(new Set(state.tasks.map((task) => task[field]).filter(Boolean))).sort();
+  }
+
+  function setSelectOptions(select, values, placeholder) {
+    const options = [`<option value="">${placeholder}</option>`, ...values.map((value) => `<option value="${value}">${value}</option>`)];
+    select.innerHTML = options.join('');
+  }
+
+  function ensureOptionExists(select, value) {
+    if (!value) return;
+    const normalized = String(value);
+    if (![...select.options].some((option) => option.value === normalized)) {
+      const option = document.createElement('option');
+      option.value = normalized;
+      option.textContent = normalized;
+      select.appendChild(option);
+    }
+  }
 
 function renderTasks() {
   const filteredTasks = filterTasks();
@@ -145,6 +170,11 @@ function openTaskModal(task) {
   elements.taskForm.order.value = task.order || '';
   elements.taskForm.cost.value = task.cost || '';
   elements.taskForm.state.value = task.state || 'Pending';
+  ensureOptionExists(elements.taskForm.property, task.property);
+  ensureOptionExists(elements.taskForm.interiorExterior, task.interiorExterior);
+  ensureOptionExists(elements.taskForm.upstairsDownstairs, task.upstairsDownstairs);
+  ensureOptionExists(elements.taskForm.area, task.area);
+  ensureOptionExists(elements.taskForm.category, task.category);
   elements.taskModal.classList.remove('hidden');
 }
 
@@ -168,6 +198,15 @@ async function onSubmitTaskForm(event) {
     cost: parseFloat(elements.taskForm.cost.value || 0) || 0,
     state: elements.taskForm.state.value.trim() || 'Pending'
   };
+
+  // If no ID provided, compute a safe incrementing ID from current tasks
+  if (!taskData.id) {
+    const numericIds = state.tasks
+      .map((t) => Number(t.id))
+      .filter((n) => Number.isFinite(n) && !Number.isNaN(n));
+    const maxId = numericIds.length ? Math.max(...numericIds) : 0;
+    taskData.id = String(maxId + 1);
+  }
 
   try {
     if (state.currentEdit && state.currentEdit.rowIndex) {

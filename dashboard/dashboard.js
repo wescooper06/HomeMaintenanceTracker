@@ -1,5 +1,5 @@
-import { getTasks, updateTask } from '../lib/sheets.js';
-import { formatCurrency, formatDate, normalizePriority } from '../lib/utils.js';
+import { getTasks, addTask, updateTask, deleteTask } from '../lib/sheets.js';
+import { formatCurrency, formatDate, normalizePriority, getDefaultTask } from '../lib/utils.js';
 
 const state = {
   tasks: [],
@@ -24,6 +24,12 @@ const elements = {
   categoryFilter: document.querySelector('#dashboard-category-filter'),
   selectAll: document.querySelector('#select-all'),
   refreshButton: document.querySelector('#refresh-data'),
+  deleteSelected: document.querySelector('#delete-selected'),
+  openAddForm: document.querySelector('#open-add-form'),
+  taskModal: document.querySelector('#task-modal'),
+  closeModal: document.querySelector('#close-modal'),
+  taskForm: document.querySelector('#task-form'),
+  modalTitle: document.querySelector('#modal-title'),
   bulkState: document.querySelector('#bulk-state'),
   bulkPriority: document.querySelector('#bulk-priority'),
   applyBulkState: document.querySelector('#apply-bulk-state'),
@@ -42,10 +48,16 @@ function initialize() {
   elements.categoryFilter.addEventListener('change', onFilterChange);
   elements.selectAll.addEventListener('change', onSelectAll);
   elements.refreshButton.addEventListener('click', loadTasks);
+  elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
+  elements.closeModal.addEventListener('click', closeTaskModal);
+  elements.taskForm.addEventListener('submit', onSubmitTaskForm);
+  elements.deleteSelected.addEventListener('click', deleteSelectedRows);
   elements.applyBulkState.addEventListener('click', applyBulkState);
   elements.applyBulkPriority.addEventListener('click', applyBulkPriority);
   elements.tableBody.addEventListener('click', onTableClick);
   elements.tableBody.addEventListener('focusout', onCellEditComplete);
+  // Listen for change events so selects commit when the user chooses an option
+  elements.tableBody.addEventListener('change', onCellEditComplete);
   elements.tableHeaders.forEach((header) => header.addEventListener('click', onHeaderSort));
   loadTasks();
 }
@@ -55,6 +67,7 @@ async function loadTasks() {
     const tasks = await getTasks();
     state.tasks = tasks;
     populateFilterOptions();
+    populateTaskFormOptions();
     renderTable();
     renderCharts();
   } catch (error) {
@@ -63,11 +76,42 @@ async function loadTasks() {
 }
 
 function populateFilterOptions() {
-  const properties = Array.from(new Set(state.tasks.map((task) => task.property).filter(Boolean))).sort();
-  const categories = Array.from(new Set(state.tasks.map((task) => task.category).filter(Boolean))).sort();
+  const properties = getUniqueOptions('property');
+  const categories = getUniqueOptions('category');
 
   elements.propertyFilter.innerHTML = '<option value="">All Properties</option>' + properties.map((value) => `<option value="${value}">${value}</option>`).join('');
   elements.categoryFilter.innerHTML = '<option value="">All Categories</option>' + categories.map((value) => `<option value="${value}">${value}</option>`).join('');
+  setSelectOptions(elements.taskForm.property, properties, 'Choose property');
+}
+
+function populateTaskFormOptions() {
+  setSelectOptions(elements.taskForm.property, getUniqueOptions('property'), 'Choose property');
+  setSelectOptions(elements.taskForm.interiorExterior, getUniqueOptions('interiorExterior'), 'Choose interior/exterior');
+  setSelectOptions(elements.taskForm.upstairsDownstairs, getUniqueOptions('upstairsDownstairs'), 'Choose up/down');
+  setSelectOptions(elements.taskForm.area, getUniqueOptions('area'), 'Choose area');
+  setSelectOptions(elements.taskForm.category, getUniqueOptions('category'), 'Choose category');
+}
+
+function setSelectOptions(select, values, placeholder) {
+  if (!select) return;
+  const options = [`<option value="">${placeholder}</option>`, ...values.map((value) => `<option value="${value}">${value}</option>`)];
+  select.innerHTML = options.join('');
+}
+
+function getUniqueOptions(field) {
+  return Array.from(new Set(state.tasks.map((task) => task[field]).filter(Boolean))).sort();
+}
+
+// Ensure option exists in dropdown select
+function ensureOptionExists(select, value) {
+  if (!select || !value) return;
+  const normalized = String(value);
+  if (![...select.options].some((option) => option.value === normalized)) {
+    const option = document.createElement('option');
+    option.value = normalized;
+    option.textContent = normalized;
+    select.appendChild(option);
+  }
 }
 
 function onFilterChange() {
@@ -94,6 +138,7 @@ function getFilteredTasks() {
   return state.tasks
     .filter((task) => {
       const matchesSearch = !state.filters.search || [
+        task.id,
         task.property,
         task.interiorExterior,
         task.upstairsDownstairs,
@@ -119,13 +164,14 @@ function getFilteredTasks() {
 function renderTable() {
   const tasks = getFilteredTasks();
   if (!tasks.length) {
-    elements.tableBody.innerHTML = '<tr><td colspan="12">No tasks found.</td></tr>';
+    elements.tableBody.innerHTML = '<tr><td colspan="14">No tasks found.</td></tr>';
     return;
   }
 
   elements.tableBody.innerHTML = tasks.map((task) => `
     <tr>
       <td><input type="checkbox" data-id="${task.rowIndex}" ${state.selectedIds.has(task.rowIndex) ? 'checked' : ''}></td>
+      <td data-field="id">${task.id || ''}</td>
       <td data-field="property">${task.property || ''}</td>
       <td data-field="interiorExterior">${task.interiorExterior || ''}</td>
       <td data-field="upstairsDownstairs">${task.upstairsDownstairs || ''}</td>
@@ -137,11 +183,37 @@ function renderTable() {
       <td data-field="cost">${formatCurrency(task.cost)}</td>
       <td data-field="state">${task.state || 'Pending'}</td>
       <td data-field="dateCompleted">${task.dateCompleted || ''}</td>
+      <td class="row-actions"><button type="button" class="delete-row" data-action="delete" data-row="${task.rowIndex}">Delete</button></td>
     </tr>
   `).join('');
 }
 
-function onTableClick(event) {
+async function onTableClick(event) {
+  // If the click originated from an active edit control (input/select),
+  // do not handle it here — otherwise opening a select will trigger this
+  // handler and re-render the cell, closing the dropdown prematurely.
+  if (event.target.closest('[data-edit-field]')) return;
+  // If some cell is currently being edited, ignore clicks outside it so
+  // the user can interact with its dropdown without the table re-rendering.
+  const editingCell = elements.tableBody.querySelector('td.editing');
+  if (editingCell && !editingCell.contains(event.target)) return;
+  const actionBtn = event.target.closest('button[data-action]');
+  if (actionBtn) {
+    const action = actionBtn.dataset.action;
+    if (action === 'delete') {
+      const rowIndex = Number(actionBtn.dataset.row);
+      const confirmed = confirm('Delete this task from Google Sheets?');
+      if (!confirmed) return;
+      try {
+        await deleteTask(rowIndex);
+        await loadTasks();
+      } catch (err) {
+        alert(`Could not delete task: ${err.message}`);
+      }
+    }
+    return;
+  }
+
   const checkbox = event.target.closest('input[type="checkbox"][data-id]');
   if (checkbox) {
     const id = Number(checkbox.dataset.id);
@@ -158,6 +230,8 @@ function onTableClick(event) {
   if (!cell) return;
 
   const field = cell.dataset.field;
+  if (field === 'id') return;
+
   const row = cell.closest('tr');
   const rowId = Number(row.querySelector('input[data-id]').dataset.id);
   const task = state.tasks.find((item) => item.rowIndex === rowId);
@@ -165,6 +239,7 @@ function onTableClick(event) {
 
   if (field === 'cost') {
     cell.innerHTML = `<input type="number" step="0.01" min="0" value="${task.cost || 0}" data-edit-field="${field}">`;
+    cell.classList.add('editing');
   } else if (field === 'priority') {
     cell.innerHTML = `
       <select data-edit-field="${field}">
@@ -173,18 +248,47 @@ function onTableClick(event) {
         <option value="Low" ${task.priority === 'Low' ? 'selected' : ''}>Low</option>
       </select>
     `;
+      cell.classList.add('editing');
+  } else if (['property', 'interiorExterior', 'upstairsDownstairs', 'area', 'category'].includes(field)) {
+    const options = getUniqueOptions(field);
+    const selectOptions = [`<option value=""></option>`, ...options.map((value) => `<option value="${value}" ${task[field] === value ? 'selected' : ''}>${value}</option>`)];
+    cell.innerHTML = `<select data-edit-field="${field}">${selectOptions.join('')}</select>`;
+      cell.classList.add('editing');
   } else if (field === 'dateCompleted') {
     cell.innerHTML = `<input type="date" value="${task.dateCompleted || ''}" data-edit-field="${field}">`;
+      cell.classList.add('editing');
   } else {
     cell.innerHTML = `<input type="text" value="${cell.textContent.trim()}" data-edit-field="${field}">`;
+      cell.classList.add('editing');
   }
   const input = cell.querySelector('[data-edit-field]');
   input.focus();
 }
 
+async function deleteSelectedRows() {
+  if (state.selectedIds.size === 0) return;
+  const confirmed = confirm(`Delete ${state.selectedIds.size} selected task(s)? This cannot be undone.`);
+  if (!confirmed) return;
+  const ids = Array.from(state.selectedIds).sort((a, b) => b - a);
+  for (const rowIndex of ids) {
+    try {
+      await deleteTask(rowIndex);
+    } catch (error) {
+      console.error(`Unable to delete row ${rowIndex}:`, error);
+    }
+  }
+  state.selectedIds.clear();
+  await loadTasks();
+}
+
 async function onCellEditComplete(event) {
   const input = event.target.closest('[data-edit-field]');
   if (!input) return;
+
+  // If this is a SELECT element, ignore focusout events so the user can
+  // open the dropdown and make a selection; rely on the 'change' event to
+  // commit the value instead.
+  if (input.tagName === 'SELECT' && event.type === 'focusout') return;
 
   const cell = input.closest('td');
   const row = cell.closest('tr');
@@ -208,6 +312,9 @@ async function onCellEditComplete(event) {
   try {
     await updateTask(rowId, { [field]: updateValue });
     task[field] = updateValue;
+    // editing completed for this cell
+    const editingCell = elements.tableBody.querySelector('td.editing');
+    if (editingCell) editingCell.classList.remove('editing');
     if (field === 'state' && updateValue.toLowerCase() === 'complete' && !task.dateCompleted) {
       task.dateCompleted = formatDate(new Date());
     }
@@ -240,6 +347,65 @@ async function applyBulkPriority() {
   const nextPriority = elements.bulkPriority.value;
   if (!nextPriority || state.selectedIds.size === 0) return;
   await updateSelectedTasks({ priority: normalizePriority(nextPriority) });
+}
+
+function openTaskModal(task) {
+  elements.modalTitle.textContent = 'Add Task';
+  elements.taskForm.property.value = task.property || '';
+  elements.taskForm.interiorExterior.value = task.interiorExterior || '';
+  elements.taskForm.upstairsDownstairs.value = task.upstairsDownstairs || '';
+  elements.taskForm.area.value = task.area || '';
+  elements.taskForm.category.value = task.category || '';
+  elements.taskForm.description.value = task.description || '';
+  elements.taskForm.priority.value = task.priority || 'Low';
+  elements.taskForm.order.value = task.order || '';
+  elements.taskForm.cost.value = task.cost || '';
+  elements.taskForm.state.value = task.state || 'Pending';
+  ensureOptionExists(elements.taskForm.property, task.property);
+  ensureOptionExists(elements.taskForm.interiorExterior, task.interiorExterior);
+  ensureOptionExists(elements.taskForm.upstairsDownstairs, task.upstairsDownstairs);
+  ensureOptionExists(elements.taskForm.area, task.area);
+  ensureOptionExists(elements.taskForm.category, task.category);
+  elements.taskModal.classList.remove('hidden');
+}
+
+function closeTaskModal() {
+  elements.taskForm.reset();
+  elements.taskModal.classList.add('hidden');
+}
+
+async function onSubmitTaskForm(event) {
+  event.preventDefault();
+
+  const taskData = {
+    property: elements.taskForm.property.value.trim(),
+    interiorExterior: elements.taskForm.interiorExterior.value.trim(),
+    upstairsDownstairs: elements.taskForm.upstairsDownstairs.value.trim(),
+    area: elements.taskForm.area.value.trim(),
+    category: elements.taskForm.category.value.trim(),
+    description: elements.taskForm.description.value.trim(),
+    priority: elements.taskForm.priority.value,
+    order: elements.taskForm.order.value.trim(),
+    cost: parseFloat(elements.taskForm.cost.value || 0) || 0,
+    state: elements.taskForm.state.value.trim() || 'Pending'
+  };
+
+  // If no ID provided, compute a safe incrementing ID from current tasks
+  if (!taskData.id) {
+    const numericIds = state.tasks
+      .map((t) => Number(t.id))
+      .filter((n) => Number.isFinite(n) && !Number.isNaN(n));
+    const maxId = numericIds.length ? Math.max(...numericIds) : 0;
+    taskData.id = String(maxId + 1);
+  }
+
+  try {
+    await addTask(taskData);
+    closeTaskModal();
+    await loadTasks();
+  } catch (error) {
+    alert(`Could not add task: ${error.message}`);
+  }
 }
 
 async function updateSelectedTasks(payload) {
