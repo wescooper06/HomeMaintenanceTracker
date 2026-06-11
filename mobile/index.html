@@ -22,17 +22,23 @@
   <section class="controls">
     <input id="search-input" type="search" placeholder="Search tasks..." />
     <div class="filter-row">
-      <select id="filter-property">
+      <select id="filter-property" multiple size="1">
         <option value="">All Properties</option>
       </select>
-      <select id="filter-priority">
+      <select id="filter-priority" multiple size="1">
         <option value="">All Priorities</option>
         <option value="High">High</option>
         <option value="Medium">Medium</option>
         <option value="Low">Low</option>
       </select>
-      <select id="filter-category">
+      <select id="filter-category" multiple size="1">
         <option value="">All Categories</option>
+      </select>
+      <select id="filter-area" multiple size="1">
+        <option value="">All Areas</option>
+      </select>
+      <select id="filter-state" multiple size="1">
+        <option value="">All States</option>
       </select>
     </div>
   </section>
@@ -47,12 +53,12 @@
     <div class="modal-content">
       <h2 id="modal-title">Add Task</h2>
       <form id="task-form">
-        <div class="form-grid">
-          <label>Property<input name="property" required /></label>
-          <label>Interior/Exterior<input name="interiorExterior" /></label>
-          <label>Upstairs/Downstairs<input name="upstairsDownstairs" /></label>
-          <label>Area<input name="area" /></label>
-          <label>Category<input name="category" /></label>
+          <div class="form-grid">
+          <label>Property<select name="property" required></select></label>
+          <label>Interior/Exterior<select name="interiorExterior"></select></label>
+          <label>Upstairs/Downstairs<select name="upstairsDownstairs"></select></label>
+          <label>Area<select name="area"></select></label>
+          <label>Category<select name="category"></select></label>
           <label>Task Description<textarea name="description" required></textarea></label>
           <label>Priority<select name="priority">
               <option value="High">High</option>
@@ -61,7 +67,11 @@
             </select></label>
           <label>Order<input name="order" /></label>
           <label>Cost ($)<input name="cost" type="number" step="0.01" min="0" /></label>
-          <label>State<input name="state" value="Pending" /></label>
+          <label>State<select name="state">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Complete">Complete</option>
+            </select></label>
         </div>
         <div class="form-actions">
           <button type="submit">Save Task</button>

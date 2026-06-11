@@ -5,9 +5,11 @@ const state = {
   tasks: [],
   filters: {
     search: '',
-    property: '',
-    priority: '',
-    category: ''
+    property: [],
+    priority: [],
+    category: [],
+    area: [],
+    state: []
   },
   currentEdit: null
 };
@@ -17,6 +19,8 @@ const elements = {
   filterProperty: document.querySelector('#filter-property'),
   filterPriority: document.querySelector('#filter-priority'),
   filterCategory: document.querySelector('#filter-category'),
+  filterArea: document.querySelector('#filter-area'),
+  filterState: document.querySelector('#filter-state'),
   taskContainer: document.querySelector('#task-container'),
   openAddForm: document.querySelector('#open-add-form'),
   taskModal: document.querySelector('#task-modal'),
@@ -33,6 +37,8 @@ function initialize() {
   elements.filterProperty.addEventListener('change', onFilterChange);
   elements.filterPriority.addEventListener('change', onFilterChange);
   elements.filterCategory.addEventListener('change', onFilterChange);
+  elements.filterArea.addEventListener('change', onFilterChange);
+  elements.filterState.addEventListener('change', onFilterChange);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
   elements.closeModal.addEventListener('click', closeTaskModal);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
@@ -51,20 +57,38 @@ async function loadTasks() {
   }
 }
 
+function getSelectValues(select) {
+  if (!select) return [];
+  return Array.from(select.selectedOptions)
+    .map((option) => option.value)
+    .filter(Boolean);
+}
+
 function onFilterChange() {
   state.filters.search = elements.searchInput.value.trim().toLowerCase();
-  state.filters.property = elements.filterProperty.value;
-  state.filters.priority = elements.filterPriority.value;
-  state.filters.category = elements.filterCategory.value;
+  state.filters.property = getSelectValues(elements.filterProperty);
+  state.filters.priority = getSelectValues(elements.filterPriority);
+  state.filters.category = getSelectValues(elements.filterCategory);
+  state.filters.area = getSelectValues(elements.filterArea);
+  state.filters.state = getSelectValues(elements.filterState);
   renderTasks();
 }
 
 function renderFilters() {
   const properties = Array.from(new Set(state.tasks.map((task) => task.property).filter(Boolean))).sort();
   const categories = Array.from(new Set(state.tasks.map((task) => task.category).filter(Boolean))).sort();
+  const areas = Array.from(new Set(state.tasks.map((task) => task.area).filter(Boolean))).sort();
+  const states = Array.from(new Set(state.tasks.map((task) => task.state).filter(Boolean))).sort();
 
   elements.filterProperty.innerHTML = '<option value="">All Properties</option>' + properties.map((property) => `<option value="${property}">${property}</option>`).join('');
   elements.filterCategory.innerHTML = '<option value="">All Categories</option>' + categories.map((category) => `<option value="${category}">${category}</option>`).join('');
+  elements.filterArea.innerHTML = '<option value="">All Areas</option>' + areas.map((area) => `<option value="${area}">${area}</option>`).join('');
+  elements.filterState.innerHTML = '<option value="">All States</option>' + states.map((value) => `<option value="${value}">${value}</option>`).join('');
+  setSelectOptions(elements.taskForm.property, properties, 'Choose property');
+  setSelectOptions(elements.taskForm.interiorExterior, getUniqueOptions('interiorExterior'), 'Choose interior/exterior');
+  setSelectOptions(elements.taskForm.upstairsDownstairs, getUniqueOptions('upstairsDownstairs'), 'Choose up/down');
+  setSelectOptions(elements.taskForm.area, areas, 'Choose area');
+  setSelectOptions(elements.taskForm.category, categories, 'Choose category');
 }
 
 function filterTasks() {
@@ -78,13 +102,35 @@ function filterTasks() {
         task.description,
         task.state
       ].some((value) => String(value || '').toLowerCase().includes(search));
-      const matchProperty = !state.filters.property || task.property === state.filters.property;
-      const matchPriority = !state.filters.priority || task.priority === state.filters.priority;
-      const matchCategory = !state.filters.category || task.category === state.filters.category;
-      return matchSearch && matchProperty && matchPriority && matchCategory;
+      const matchProperty = !state.filters.property.length || state.filters.property.includes(task.property);
+      const matchPriority = !state.filters.priority.length || state.filters.priority.includes(task.priority);
+      const matchCategory = !state.filters.category.length || state.filters.category.includes(task.category);
+      const matchArea = !state.filters.area.length || state.filters.area.includes(task.area);
+      const matchState = !state.filters.state.length || state.filters.state.includes(task.state);
+      return matchSearch && matchProperty && matchPriority && matchCategory && matchArea && matchState;
     })
     .sort((a, b) => a.description.localeCompare(b.description));
 }
+
+  function getUniqueOptions(field) {
+    return Array.from(new Set(state.tasks.map((task) => task[field]).filter(Boolean))).sort();
+  }
+
+  function setSelectOptions(select, values, placeholder) {
+    const options = [`<option value="">${placeholder}</option>`, ...values.map((value) => `<option value="${value}">${value}</option>`)];
+    select.innerHTML = options.join('');
+  }
+
+  function ensureOptionExists(select, value) {
+    if (!value) return;
+    const normalized = String(value);
+    if (![...select.options].some((option) => option.value === normalized)) {
+      const option = document.createElement('option');
+      option.value = normalized;
+      option.textContent = normalized;
+      select.appendChild(option);
+    }
+  }
 
 function renderTasks() {
   const filteredTasks = filterTasks();
@@ -145,6 +191,11 @@ function openTaskModal(task) {
   elements.taskForm.order.value = task.order || '';
   elements.taskForm.cost.value = task.cost || '';
   elements.taskForm.state.value = task.state || 'Pending';
+  ensureOptionExists(elements.taskForm.property, task.property);
+  ensureOptionExists(elements.taskForm.interiorExterior, task.interiorExterior);
+  ensureOptionExists(elements.taskForm.upstairsDownstairs, task.upstairsDownstairs);
+  ensureOptionExists(elements.taskForm.area, task.area);
+  ensureOptionExists(elements.taskForm.category, task.category);
   elements.taskModal.classList.remove('hidden');
 }
 
@@ -168,6 +219,15 @@ async function onSubmitTaskForm(event) {
     cost: parseFloat(elements.taskForm.cost.value || 0) || 0,
     state: elements.taskForm.state.value.trim() || 'Pending'
   };
+
+  // If no ID provided, compute a safe incrementing ID from current tasks
+  if (!taskData.id) {
+    const numericIds = state.tasks
+      .map((t) => Number(t.id))
+      .filter((n) => Number.isFinite(n) && !Number.isNaN(n));
+    const maxId = numericIds.length ? Math.max(...numericIds) : 0;
+    taskData.id = String(maxId + 1);
+  }
 
   try {
     if (state.currentEdit && state.currentEdit.rowIndex) {

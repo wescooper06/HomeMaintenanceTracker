@@ -26,17 +26,23 @@
   <section class="dashboard-filters">
     <input id="dashboard-search" type="search" placeholder="Search tasks..." />
     <div class="dashboard-controls">
-      <select id="dashboard-property-filter">
+      <select id="dashboard-property-filter" multiple size="1">
         <option value="">All Properties</option>
       </select>
-      <select id="dashboard-priority-filter">
+      <select id="dashboard-priority-filter" multiple size="1">
         <option value="">All Priorities</option>
         <option value="High">High</option>
         <option value="Medium">Medium</option>
         <option value="Low">Low</option>
       </select>
-      <select id="dashboard-category-filter">
+      <select id="dashboard-category-filter" multiple size="1">
         <option value="">All Categories</option>
+      </select>
+      <select id="dashboard-area-filter" multiple size="1">
+        <option value="">All Areas</option>
+      </select>
+      <select id="dashboard-state-filter" multiple size="1">
+        <option value="">All States</option>
       </select>
     </div>
   </section>
