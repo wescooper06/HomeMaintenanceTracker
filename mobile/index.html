@@ -22,17 +22,23 @@
   <section class="controls">
     <input id="search-input" type="search" placeholder="Search tasks..." />
     <div class="filter-row">
-      <select id="filter-property">
+      <select id="filter-property" multiple size="1">
         <option value="">All Properties</option>
       </select>
-      <select id="filter-priority">
+      <select id="filter-priority" multiple size="1">
         <option value="">All Priorities</option>
         <option value="High">High</option>
         <option value="Medium">Medium</option>
         <option value="Low">Low</option>
       </select>
-      <select id="filter-category">
+      <select id="filter-category" multiple size="1">
         <option value="">All Categories</option>
+      </select>
+      <select id="filter-area" multiple size="1">
+        <option value="">All Areas</option>
+      </select>
+      <select id="filter-state" multiple size="1">
+        <option value="">All States</option>
       </select>
     </div>
   </section>
