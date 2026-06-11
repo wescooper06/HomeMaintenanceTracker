@@ -5,9 +5,11 @@ const state = {
   tasks: [],
   filters: {
     search: '',
-    property: '',
-    priority: '',
-    category: ''
+    property: [],
+    priority: [],
+    category: [],
+    area: [],
+    state: []
   },
   sortKey: 'property',
   sortAsc: true,
@@ -22,6 +24,8 @@ const elements = {
   propertyFilter: document.querySelector('#dashboard-property-filter'),
   priorityFilter: document.querySelector('#dashboard-priority-filter'),
   categoryFilter: document.querySelector('#dashboard-category-filter'),
+  areaFilter: document.querySelector('#dashboard-area-filter'),
+  stateFilter: document.querySelector('#dashboard-state-filter'),
   selectAll: document.querySelector('#select-all'),
   refreshButton: document.querySelector('#refresh-data'),
   deleteSelected: document.querySelector('#delete-selected'),
@@ -46,6 +50,8 @@ function initialize() {
   elements.propertyFilter.addEventListener('change', onFilterChange);
   elements.priorityFilter.addEventListener('change', onFilterChange);
   elements.categoryFilter.addEventListener('change', onFilterChange);
+  elements.areaFilter.addEventListener('change', onFilterChange);
+  elements.stateFilter.addEventListener('change', onFilterChange);
   elements.selectAll.addEventListener('change', onSelectAll);
   elements.refreshButton.addEventListener('click', loadTasks);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
@@ -78,9 +84,13 @@ async function loadTasks() {
 function populateFilterOptions() {
   const properties = getUniqueOptions('property');
   const categories = getUniqueOptions('category');
+  const areas = getUniqueOptions('area');
+  const states = getUniqueOptions('state');
 
   elements.propertyFilter.innerHTML = '<option value="">All Properties</option>' + properties.map((value) => `<option value="${value}">${value}</option>`).join('');
   elements.categoryFilter.innerHTML = '<option value="">All Categories</option>' + categories.map((value) => `<option value="${value}">${value}</option>`).join('');
+  elements.areaFilter.innerHTML = '<option value="">All Areas</option>' + areas.map((value) => `<option value="${value}">${value}</option>`).join('');
+  elements.stateFilter.innerHTML = '<option value="">All States</option>' + states.map((value) => `<option value="${value}">${value}</option>`).join('');
   setSelectOptions(elements.taskForm.property, properties, 'Choose property');
 }
 
@@ -114,11 +124,20 @@ function ensureOptionExists(select, value) {
   }
 }
 
+function getSelectValues(select) {
+  if (!select) return [];
+  return Array.from(select.selectedOptions)
+    .map((option) => option.value)
+    .filter((value) => value);
+}
+
 function onFilterChange() {
   state.filters.search = elements.search.value.trim().toLowerCase();
-  state.filters.property = elements.propertyFilter.value;
-  state.filters.priority = elements.priorityFilter.value;
-  state.filters.category = elements.categoryFilter.value;
+  state.filters.property = getSelectValues(elements.propertyFilter);
+  state.filters.priority = getSelectValues(elements.priorityFilter);
+  state.filters.category = getSelectValues(elements.categoryFilter);
+  state.filters.area = getSelectValues(elements.areaFilter);
+  state.filters.state = getSelectValues(elements.stateFilter);
   renderTable();
   renderCharts();
 }
@@ -148,10 +167,12 @@ function getFilteredTasks() {
         task.state,
         task.order
       ].some((value) => String(value || '').toLowerCase().includes(state.filters.search));
-      const matchesProperty = !state.filters.property || task.property === state.filters.property;
-      const matchesPriority = !state.filters.priority || task.priority === state.filters.priority;
-      const matchesCategory = !state.filters.category || task.category === state.filters.category;
-      return matchesSearch && matchesProperty && matchesPriority && matchesCategory;
+      const matchesProperty = !state.filters.property.length || state.filters.property.includes(task.property);
+      const matchesPriority = !state.filters.priority.length || state.filters.priority.includes(task.priority);
+      const matchesCategory = !state.filters.category.length || state.filters.category.includes(task.category);
+      const matchesArea = !state.filters.area.length || state.filters.area.includes(task.area);
+      const matchesState = !state.filters.state.length || state.filters.state.includes(task.state);
+      return matchesSearch && matchesProperty && matchesPriority && matchesCategory && matchesArea && matchesState;
     })
     .sort((a, b) => {
       const left = String(a[state.sortKey] || '').toLowerCase();
