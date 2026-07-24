@@ -57,6 +57,15 @@ textarea {
 .app-header h1 {
   margin: 0;
   font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+}
+
+.item-counter {
+  font-size: 0.7em;
+  color: var(--muted);
+  font-weight: normal;
+  margin-left: 0.5rem;
 }
 
 .app-header p {
@@ -81,8 +90,23 @@ textarea {
 
 .filter-row {
   display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
   margin-top: 0.75rem;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.filter-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .filter-row select {

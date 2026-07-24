@@ -9,11 +9,14 @@ const state = {
     priority: [],
     category: [],
     area: [],
+    interiorExterior: [],
+    upstairsDownstairs: [],
     state: []
   },
   sortKey: 'property',
   sortAsc: true,
   selectedIds: new Set(),
+  editingRowIndex: null,
   costChart: null,
   countChart: null
 };
@@ -21,11 +24,13 @@ const state = {
 const elements = {
   tableBody: document.querySelector('#task-table tbody'),
   search: document.querySelector('#dashboard-search'),
-  propertyFilter: document.querySelector('#dashboard-property-filter'),
-  priorityFilter: document.querySelector('#dashboard-priority-filter'),
-  categoryFilter: document.querySelector('#dashboard-category-filter'),
+  propertyIcons: document.querySelector('#property-icons'),
+  categoryIcons: document.querySelector('#category-icons'),
+  priorityIcons: document.querySelector('#priority-icons'),
+  stateIcons: document.querySelector('#state-icons'),
   areaFilter: document.querySelector('#dashboard-area-filter'),
-  stateFilter: document.querySelector('#dashboard-state-filter'),
+  interiorExteriorFilter: document.querySelector('#dashboard-interior-exterior-filter'),
+  upstairsDownstairsFilter: document.querySelector('#dashboard-upstairs-downstairs-filter'),
   selectAll: document.querySelector('#select-all'),
   refreshButton: document.querySelector('#refresh-data'),
   deleteSelected: document.querySelector('#delete-selected'),
@@ -33,38 +38,36 @@ const elements = {
   taskModal: document.querySelector('#task-modal'),
   closeModal: document.querySelector('#close-modal'),
   taskForm: document.querySelector('#task-form'),
+  taskIdDisplay: document.querySelector('#task-form input[name="idDisplay"]'),
   modalTitle: document.querySelector('#modal-title'),
-  bulkState: document.querySelector('#bulk-state'),
-  bulkPriority: document.querySelector('#bulk-priority'),
-  applyBulkState: document.querySelector('#apply-bulk-state'),
-  applyBulkPriority: document.querySelector('#apply-bulk-priority'),
   tableHeaders: document.querySelectorAll('#task-table th[data-sort]'),
   costCanvas: document.querySelector('#cost-chart'),
-  countCanvas: document.querySelector('#count-chart')
+  countCanvas: document.querySelector('#count-chart'),
+  itemCounter: document.querySelector('#item-counter')
 };
 
 window.addEventListener('DOMContentLoaded', initialize);
 
 function initialize() {
   elements.search.addEventListener('input', onFilterChange);
-  elements.propertyFilter.addEventListener('change', onFilterChange);
-  elements.priorityFilter.addEventListener('change', onFilterChange);
-  elements.categoryFilter.addEventListener('change', onFilterChange);
-  elements.areaFilter.addEventListener('change', onFilterChange);
-  elements.stateFilter.addEventListener('change', onFilterChange);
   elements.selectAll.addEventListener('change', onSelectAll);
   elements.refreshButton.addEventListener('click', loadTasks);
-  elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
+  elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask(), 'add'));
   elements.closeModal.addEventListener('click', closeTaskModal);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
   elements.deleteSelected.addEventListener('click', deleteSelectedRows);
-  elements.applyBulkState.addEventListener('click', applyBulkState);
-  elements.applyBulkPriority.addEventListener('click', applyBulkPriority);
   elements.tableBody.addEventListener('click', onTableClick);
   elements.tableBody.addEventListener('focusout', onCellEditComplete);
-  // Listen for change events so selects commit when the user chooses an option
   elements.tableBody.addEventListener('change', onCellEditComplete);
   elements.tableHeaders.forEach((header) => header.addEventListener('click', onHeaderSort));
+  // Dashboard slicers
+  if (elements.areaFilter) elements.areaFilter.addEventListener('change', onFilterChange);
+  if (elements.interiorExteriorFilter) elements.interiorExteriorFilter.addEventListener('change', onFilterChange);
+  if (elements.upstairsDownstairsFilter) elements.upstairsDownstairsFilter.addEventListener('change', onFilterChange);
+  setupPropertyIcons();
+  setupIconGroup('category');
+  setupIconGroup('priority');
+  setupIconGroup('state');
   loadTasks();
 }
 
@@ -84,14 +87,30 @@ async function loadTasks() {
 function populateFilterOptions() {
   const properties = getUniqueOptions('property');
   const categories = getUniqueOptions('category');
-  const areas = getUniqueOptions('area');
+  const priorities = getUniqueOptions('priority').length ? getUniqueOptions('priority') : ['High', 'Medium', 'Low'];
   const states = getUniqueOptions('state');
+  const areas = getUniqueOptions('area');
+  const interiors = getUniqueOptions('interiorExterior');
+  const upstairs = getUniqueOptions('upstairsDownstairs');
 
-  elements.propertyFilter.innerHTML = '<option value="">All Properties</option>' + properties.map((value) => `<option value="${value}">${value}</option>`).join('');
-  elements.categoryFilter.innerHTML = '<option value="">All Categories</option>' + categories.map((value) => `<option value="${value}">${value}</option>`).join('');
-  elements.areaFilter.innerHTML = '<option value="">All Areas</option>' + areas.map((value) => `<option value="${value}">${value}</option>`).join('');
-  elements.stateFilter.innerHTML = '<option value="">All States</option>' + states.map((value) => `<option value="${value}">${value}</option>`).join('');
+  renderIconButtons(elements.categoryIcons, categories, 'category');
+  renderIconButtons(elements.priorityIcons, priorities, 'priority');
+  renderIconButtons(elements.stateIcons, states, 'state');
+
+  updateIconSelection('category');
+  updateIconSelection('priority');
+  updateIconSelection('state');
+  // Populate the dashboard-level filter selects so they reflect sheet data
+  setSelectOptions(elements.areaFilter, areas, 'All Areas');
+  setSelectOptions(elements.interiorExteriorFilter, interiors, 'All Interior/Exterior');
+  setSelectOptions(elements.upstairsDownstairsFilter, upstairs, 'All Up/Down');
+
+  // Also populate the modal/task-form selects
   setSelectOptions(elements.taskForm.property, properties, 'Choose property');
+  setSelectOptions(elements.taskForm.interiorExterior, interiors, 'Choose interior/exterior');
+  setSelectOptions(elements.taskForm.upstairsDownstairs, upstairs, 'Choose up/down');
+  setSelectOptions(elements.taskForm.area, areas, 'Choose area');
+  setSelectOptions(elements.taskForm.category, categories, 'Choose category');
 }
 
 function populateTaskFormOptions() {
@@ -133,11 +152,400 @@ function getSelectValues(select) {
 
 function onFilterChange() {
   state.filters.search = elements.search.value.trim().toLowerCase();
-  state.filters.property = getSelectValues(elements.propertyFilter);
-  state.filters.priority = getSelectValues(elements.priorityFilter);
-  state.filters.category = getSelectValues(elements.categoryFilter);
   state.filters.area = getSelectValues(elements.areaFilter);
-  state.filters.state = getSelectValues(elements.stateFilter);
+  state.filters.interiorExterior = getSelectValues(elements.interiorExteriorFilter);
+  state.filters.upstairsDownstairs = getSelectValues(elements.upstairsDownstairsFilter);
+  renderTable();
+  renderCharts();
+}
+
+function setupPropertyIcons() {
+  if (!elements.propertyIcons) return;
+  updatePropertyIconSelection();
+  elements.propertyIcons.addEventListener('click', onPropertyIconClick);
+}
+
+function setupIconGroup(field) {
+  const container = elements[`${field}Icons`];
+  if (!container) return;
+  container.addEventListener('click', onFilterIconClick);
+}
+
+function updatePropertyIconSelection() {
+  if (!elements.propertyIcons) return;
+  const icons = elements.propertyIcons.querySelectorAll('.prop-icon');
+  const selectedProps = state.filters.property || [];
+  icons.forEach((icon) => {
+    const prop = icon.dataset.property;
+    const selected = selectedProps.includes(prop);
+    icon.classList.toggle('selected', !!selected);
+    icon.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+function updateIconSelection(field) {
+  const container = elements[`${field}Icons`];
+  if (!container) return;
+  const selectedValues = state.filters[field] || [];
+  container.querySelectorAll('.icon-button').forEach((button) => {
+    const value = button.dataset.value;
+    const selected = selectedValues.includes(value);
+    button.classList.toggle('selected', selected);
+    button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+}
+
+function renderIconButtons(container, values, field) {
+  if (!container) return;
+  container.innerHTML = values.map((value) => `
+    <button type="button" class="icon-button ${field}-button" data-filter="${field}" data-value="${value}" aria-pressed="false" title="${value}">
+      ${getFilterIconSvg(field, value)}
+      <span class="icon-label">${value}</span>
+    </button>
+  `).join('');
+}
+
+function getFilterIconSvg(field, value) {
+  if (field === 'category') {
+    return getCategoryIconSvg(value || '');
+  }
+  if (field === 'priority') {
+    return getPriorityIconSvg(value);
+  }
+  if (field === 'state') {
+    return getStateIconSvg(value);
+  }
+  return `
+    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M4 5h16v3H4zM4 10h16v3H4zM4 15h16v3H4z" />
+    </svg>
+  `;
+}
+
+function getCategoryIconSvg(name) {
+  const key = String(name || '').trim().toLowerCase();
+  switch (key) {
+    // user-specific category titles -> explicit icons
+    case 'build':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2 21l21-9-9-9L2 12v9z" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 14l3 3M14 7l3-3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'clean':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 2l2 5 5 2-2-5L6 2zM2 12l4 1 1 4-4-1-1-4zM16 16l6 6-2-6-4 0z" />
+        </svg>
+      `;
+    case 'install':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 3v10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 8l5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="3" y="16" width="18" height="5" rx="1" />
+        </svg>
+      `;
+    case 'maintenance':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M21 7L13 15M3 21l7-7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 3l7 7" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'organize':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="4" rx="1" />
+          <rect x="3" y="10" width="12" height="4" rx="1" />
+          <rect x="3" y="16" width="8" height="4" rx="1" />
+        </svg>
+      `;
+    case 'renovate':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 21v-7l8-8 7 7-8 8H4z" />
+          <path d="M14 7l3 3" stroke="#fff" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'repair':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 21l18-18" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 3l7 7M10 14L3 21" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'plumbing':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 12h4v3a3 3 0 0 0 3 3h4v-4" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="6" cy="6" r="2" fill="currentColor" />
+        </svg>
+      `;
+    case 'electrical':
+    case 'electric':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />
+        </svg>
+      `;
+    case 'roofing':
+    case 'roof':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2 12l10-7 10 7" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 12v6h10v-6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'painting':
+    case 'paint':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M20.7 7.3a1 1 0 0 0-1.4 0L16 10.6 13.4 8l3.3-3.3a1 1 0 0 0 0-1.4L16.7 1.3a1 1 0 0 0-1.4 0L9 7.6V11h3.4l4.3-4.3 3 3z" />
+        </svg>
+      `;
+    case 'hvac':
+    case 'heating':
+    case 'cooling':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2v5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5 12h14" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 19h10" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'landscaping':
+    case 'yard':
+    case 'gardening':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2s4 4 0 8c-4-4 0-8 0-8zM6 20c1-4 6-6 6-6s5 2 6 6H6z" />
+        </svg>
+      `;
+    case 'flooring':
+    case 'floor':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="1" />
+          <path d="M3 9h18M9 21V9" stroke="rgba(255,255,255,0.6)" stroke-width="1"/>
+        </svg>
+      `;
+    case 'appliances':
+    case 'appliance':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="14" rx="2" stroke-linejoin="round"/>
+          <path d="M8 8h8" stroke-linecap="round"/>
+          <circle cx="18" cy="18" r="1" fill="currentColor" />
+        </svg>
+      `;
+    case 'cleaning':
+    case 'clean':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2l1.5 4L18 8l-4.5 1L12 14l-1.5-5L6 8l4.5-2L12 2z" />
+        </svg>
+      `;
+    case 'security':
+    case 'locks':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="4" y="10" width="16" height="10" rx="2" stroke-linejoin="round"/>
+          <path d="M8 10V8a4 4 0 0 1 8 0v2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'windows':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="3" y="3" width="8" height="8" />
+          <rect x="13" y="3" width="8" height="8" />
+          <rect x="3" y="13" width="8" height="8" />
+          <rect x="13" y="13" width="8" height="8" />
+        </svg>
+      `;
+    case 'doors':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="6" y="3" width="12" height="18" rx="1" />
+          <circle cx="16" cy="12" r="0.8" fill="rgba(255,255,255,0.9)" />
+        </svg>
+      `;
+    case 'gutter':
+    case 'gutters':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 7h18v4a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6V7z" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+    case 'masonry':
+    case 'stone':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 7h18v10H3zM7 7v10" opacity="0.6" />
+        </svg>
+      `;
+    case 'fencing':
+    case 'fence':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 3v18M10 3v18M16 3v18M22 3v18M2 12h20" />
+        </svg>
+      `;
+    case 'pool':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M2 12c4-3 8-3 12 0s8 3 12 0v6H2v-6z" />
+        </svg>
+      `;
+    case 'lighting':
+    case 'lights':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2v6M8 8h8l-1 5a3 3 0 0 1-6 0L8 8z" />
+        </svg>
+      `;
+    case 'pests':
+    case 'pest control':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2c2 2 3 5 3 7 0 3-2 5-3 5s-3-2-3-5c0-2 1-5 3-7z" />
+        </svg>
+      `;
+    default:
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M4 5h16v3H4zM4 10h16v3H4zM4 15h16v3H4z" />
+        </svg>
+      `;
+  }
+}
+
+function getPriorityIconSvg(value) {
+  const key = String(value || '').trim().toLowerCase();
+  switch (key) {
+    case 'high':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 3l9 18H3L12 3z" />
+        </svg>
+      `;
+    case 'medium':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="8" r="3" />
+          <rect x="6" y="14" width="12" height="6" rx="1" />
+        </svg>
+      `;
+    case 'low':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 21V3" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="18" r="2" fill="currentColor" />
+        </svg>
+      `;
+    default:
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 4l8 16H4z" />
+        </svg>
+      `;
+  }
+}
+ 
+function getStateIconSvg(value) {
+  const key = String(value || '').trim().toLowerCase();
+  switch (key) {
+    case 'completed':
+    case 'complete':
+      return `
+        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9 12l2 2 4-4" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      `;
+    case 'cancelled':
+    case 'canceled':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9 9l6 6M15 9l-6 6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      `;
+    case 'deferred':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 8v5l3 3" stroke-linecap="round" stroke-linejoin="round" />
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      `;
+    case 'in progress':
+    case 'in-progress':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M3 12a9 9 0 0 0 9 9" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M12 3v4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      `;
+    case 'not started':
+    case 'not-started':
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+        </svg>
+      `;
+    case 'pending':
+    default:
+      return `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 2h12v6l-6 4-6-4V2z" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M6 14v6h12v-6" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      `;
+  }
+}
+
+function onFilterIconClick(event) {
+  const btn = event.target.closest('.icon-button');
+  if (!btn) return;
+  const field = btn.dataset.filter;
+  const value = btn.dataset.value;
+  if (!field || !value) return;
+
+  const current = state.filters[field] || [];
+  if (current.includes(value)) {
+    state.filters[field] = current.filter((item) => item !== value);
+  } else {
+    state.filters[field] = [...current, value];
+  }
+
+  updateIconSelection(field);
+  renderTable();
+  renderCharts();
+}
+
+function onPropertyIconClick(event) {
+  const btn = event.target.closest('.prop-icon');
+  if (!btn) return;
+  const prop = btn.dataset.property;
+  const currently = state.filters.property || [];
+  const isMultiSelect = event.ctrlKey || event.metaKey;
+
+  if (isMultiSelect) {
+    if (currently.includes(prop)) {
+      state.filters.property = currently.filter((value) => value !== prop);
+    } else {
+      state.filters.property = [...currently, prop];
+    }
+  } else {
+    if (currently.length === 1 && currently[0] === prop) {
+      state.filters.property = [];
+    } else {
+      state.filters.property = [prop];
+    }
+  }
+
+  updatePropertyIconSelection();
   renderTable();
   renderCharts();
 }
@@ -171,10 +579,28 @@ function getFilteredTasks() {
       const matchesPriority = !state.filters.priority.length || state.filters.priority.includes(task.priority);
       const matchesCategory = !state.filters.category.length || state.filters.category.includes(task.category);
       const matchesArea = !state.filters.area.length || state.filters.area.includes(task.area);
+      const matchesInterior = !state.filters.interiorExterior.length || state.filters.interiorExterior.includes(task.interiorExterior);
+      const matchesUpstairs = !state.filters.upstairsDownstairs.length || state.filters.upstairsDownstairs.includes(task.upstairsDownstairs);
       const matchesState = !state.filters.state.length || state.filters.state.includes(task.state);
-      return matchesSearch && matchesProperty && matchesPriority && matchesCategory && matchesArea && matchesState;
+      return matchesSearch && matchesProperty && matchesPriority && matchesCategory && matchesArea && matchesInterior && matchesUpstairs && matchesState;
     })
     .sort((a, b) => {
+      if (state.sortKey === 'order') {
+        const leftRaw = String(a.order || '').trim();
+        const rightRaw = String(b.order || '').trim();
+        const leftValue = parseFloat(leftRaw);
+        const rightValue = parseFloat(rightRaw);
+        const leftNumeric = Number.isFinite(leftValue);
+        const rightNumeric = Number.isFinite(rightValue);
+        if (leftNumeric && rightNumeric) {
+          if (leftValue === rightValue) return 0;
+          return state.sortAsc ? leftValue - rightValue : rightValue - leftValue;
+        }
+        if (leftNumeric) return state.sortAsc ? -1 : 1;
+        if (rightNumeric) return state.sortAsc ? 1 : -1;
+        if (leftRaw === rightRaw) return 0;
+        return state.sortAsc ? leftRaw.localeCompare(rightRaw) : rightRaw.localeCompare(leftRaw);
+      }
       const left = String(a[state.sortKey] || '').toLowerCase();
       const right = String(b[state.sortKey] || '').toLowerCase();
       if (left === right) return 0;
@@ -184,6 +610,13 @@ function getFilteredTasks() {
 
 function renderTable() {
   const tasks = getFilteredTasks();
+  if (elements.itemCounter) {
+    elements.itemCounter.textContent = `${tasks.length}`;
+    elements.itemCounter.classList.add('count-updated');
+    window.requestAnimationFrame(() => {
+      elements.itemCounter.classList.remove('count-updated');
+    });
+  }
   if (!tasks.length) {
     elements.tableBody.innerHTML = '<tr><td colspan="14">No tasks found.</td></tr>';
     return;
@@ -204,7 +637,10 @@ function renderTable() {
       <td data-field="cost">${formatCurrency(task.cost)}</td>
       <td data-field="state">${task.state || 'Pending'}</td>
       <td data-field="dateCompleted">${task.dateCompleted || ''}</td>
-      <td class="row-actions"><button type="button" class="delete-row" data-action="delete" data-row="${task.rowIndex}">Delete</button></td>
+      <td class="row-actions">
+        <button type="button" class="edit-row" data-action="edit" data-row="${task.rowIndex}">Edit</button>
+        <button type="button" class="delete-row" data-action="delete" data-row="${task.rowIndex}">Delete</button>
+      </td>
     </tr>
   `).join('');
 }
@@ -221,8 +657,13 @@ async function onTableClick(event) {
   const actionBtn = event.target.closest('button[data-action]');
   if (actionBtn) {
     const action = actionBtn.dataset.action;
+    const rowIndex = Number(actionBtn.dataset.row);
+    const task = state.tasks.find((item) => item.rowIndex === rowIndex);
+    if (action === 'edit' && task) {
+      openTaskModal(task, 'edit');
+      return;
+    }
     if (action === 'delete') {
-      const rowIndex = Number(actionBtn.dataset.row);
       const confirmed = confirm('Delete this task from Google Sheets?');
       if (!confirmed) return;
       try {
@@ -358,20 +799,13 @@ function onHeaderSort(event) {
   renderTable();
 }
 
-async function applyBulkState() {
-  const nextState = elements.bulkState.value;
-  if (!nextState || state.selectedIds.size === 0) return;
-  await updateSelectedTasks({ state: nextState });
-}
-
-async function applyBulkPriority() {
-  const nextPriority = elements.bulkPriority.value;
-  if (!nextPriority || state.selectedIds.size === 0) return;
-  await updateSelectedTasks({ priority: normalizePriority(nextPriority) });
-}
-
-function openTaskModal(task) {
-  elements.modalTitle.textContent = 'Add Task';
+function openTaskModal(task, mode = 'add') {
+  state.editingRowIndex = mode === 'edit' ? task.rowIndex : null;
+  elements.modalTitle.textContent = mode === 'edit' ? 'Edit Task' : 'Add Task';
+  elements.taskForm.id.value = task.id || '';
+  if (elements.taskIdDisplay) {
+    elements.taskIdDisplay.value = task.id || '';
+  }
   elements.taskForm.property.value = task.property || '';
   elements.taskForm.interiorExterior.value = task.interiorExterior || '';
   elements.taskForm.upstairsDownstairs.value = task.upstairsDownstairs || '';
@@ -382,6 +816,7 @@ function openTaskModal(task) {
   elements.taskForm.order.value = task.order || '';
   elements.taskForm.cost.value = task.cost || '';
   elements.taskForm.state.value = task.state || 'Pending';
+  elements.taskForm.dateCompleted.value = task.dateCompleted || '';
   ensureOptionExists(elements.taskForm.property, task.property);
   ensureOptionExists(elements.taskForm.interiorExterior, task.interiorExterior);
   ensureOptionExists(elements.taskForm.upstairsDownstairs, task.upstairsDownstairs);
@@ -392,6 +827,7 @@ function openTaskModal(task) {
 
 function closeTaskModal() {
   elements.taskForm.reset();
+  state.editingRowIndex = null;
   elements.taskModal.classList.add('hidden');
 }
 
@@ -399,6 +835,7 @@ async function onSubmitTaskForm(event) {
   event.preventDefault();
 
   const taskData = {
+    id: elements.taskForm.id.value.trim(),
     property: elements.taskForm.property.value.trim(),
     interiorExterior: elements.taskForm.interiorExterior.value.trim(),
     upstairsDownstairs: elements.taskForm.upstairsDownstairs.value.trim(),
@@ -408,24 +845,33 @@ async function onSubmitTaskForm(event) {
     priority: elements.taskForm.priority.value,
     order: elements.taskForm.order.value.trim(),
     cost: parseFloat(elements.taskForm.cost.value || 0) || 0,
-    state: elements.taskForm.state.value.trim() || 'Pending'
+    state: elements.taskForm.state.value.trim() || 'Pending',
+    dateCompleted: elements.taskForm.dateCompleted.value || ''
   };
 
-  // If no ID provided, compute a safe incrementing ID from current tasks
-  if (!taskData.id) {
-    const numericIds = state.tasks
-      .map((t) => Number(t.id))
-      .filter((n) => Number.isFinite(n) && !Number.isNaN(n));
-    const maxId = numericIds.length ? Math.max(...numericIds) : 0;
-    taskData.id = String(maxId + 1);
+  if (taskData.state.toLowerCase() === 'complete' && !taskData.dateCompleted) {
+    taskData.dateCompleted = formatDate(new Date());
+  } else if (taskData.state.toLowerCase() !== 'complete') {
+    taskData.dateCompleted = '';
   }
 
   try {
-    await addTask(taskData);
+    if (state.editingRowIndex) {
+      await updateTask(state.editingRowIndex, taskData);
+    } else {
+      if (!taskData.id) {
+        const numericIds = state.tasks
+          .map((t) => Number(t.id))
+          .filter((n) => Number.isFinite(n) && !Number.isNaN(n));
+        const maxId = numericIds.length ? Math.max(...numericIds) : 0;
+        taskData.id = String(maxId + 1);
+      }
+      await addTask(taskData);
+    }
     closeTaskModal();
     await loadTasks();
   } catch (error) {
-    alert(`Could not add task: ${error.message}`);
+    alert(`Could not save task: ${error.message}`);
   }
 }
 

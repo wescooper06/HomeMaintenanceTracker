@@ -16,6 +16,11 @@
       <h1>Home Maintenance Dashboard</h1>
       <p>Full table view with filters, bulk edits, and charts.</p>
     </div>
+    <div class="item-counter-wrapper">
+      <span id="item-counter" class="item-counter" aria-label="Task count"></span>
+      <span class="item-counter-label">Item Count</span>
+    </div>
+    <input id="dashboard-search" type="search" placeholder="Search tasks..." />
     <div class="header-actions">
       <button id="open-add-form" type="button">Add Task</button>
       <button id="delete-selected" type="button">Delete Selected</button>
@@ -24,55 +29,79 @@
   </header>
 
   <section class="dashboard-filters">
-    <input id="dashboard-search" type="search" placeholder="Search tasks..." />
+    <div class="dashboard-icon-panels">
+      <div class="filter-panel">
+        <h2>Property</h2>
+        <div id="property-icons" class="icon-grid property-icons" aria-hidden="false" title="Filter by property icons">
+          <button type="button" class="prop-icon" data-property="House" aria-pressed="false" title="House">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 3l8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1V9l8-6z" />
+            </svg>
+            <span class="prop-label">House</span>
+          </button>
+          <button type="button" class="prop-icon" data-property="Apartment" aria-pressed="false" title="Apartment">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M4 21h16V3H4v18zm2-2v-3h3v3H6zm0-5V9h3v5H6zm5 5v-3h3v3h-3zm0-5V9h3v5h-3zm5 5v-3h3v3h-3zm0-5V9h3v5h-3z"/>
+            </svg>
+            <span class="prop-label">Apartment</span>
+          </button>
+          <button type="button" class="prop-icon" data-property="Shop" aria-pressed="false" title="Shop">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M3 11l9-6 9 6v7a1 1 0 0 1-1 1h-5v-5H9v5H4a1 1 0 0 1-1-1v-7zM7 13h2v2H7v-2zm4 0h2v2h-2v-2z"/>
+            </svg>
+            <span class="prop-label">Shop</span>
+          </button>
+          <button type="button" class="prop-icon" data-property="Yard/Field" aria-pressed="false" title="Yard/Field">
+            <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M3 3h2v18H3V3zm4 0h2v18H7V3zm4 0h2v18h-2V3zm4 0h2v18h-2V3zm4 0h2v18h-2V3z"/>
+            </svg>
+            <span class="prop-label">Yard/Field</span>
+          </button>
+        </div>
+      </div>
+      <div class="filter-panel">
+        <h2>Category</h2>
+        <div id="category-icons" class="icon-grid category-icons" title="Filter by category icons"></div>
+      </div>
+      <div class="filter-panel">
+        <h2>Priority</h2>
+        <div id="priority-icons" class="icon-grid priority-icons" title="Filter by priority icons"></div>
+      </div>
+      <div class="filter-panel">
+        <h2>State</h2>
+        <div id="state-icons" class="icon-grid state-icons" title="Filter by state icons"></div>
+      </div>
+    </div>
     <div class="dashboard-controls">
-      <select id="dashboard-property-filter" multiple size="1">
-        <option value="">All Properties</option>
-      </select>
-      <select id="dashboard-priority-filter" multiple size="1">
-        <option value="">All Priorities</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-      <select id="dashboard-category-filter" multiple size="1">
-        <option value="">All Categories</option>
-      </select>
-      <select id="dashboard-area-filter" multiple size="1">
-        <option value="">All Areas</option>
-      </select>
-      <select id="dashboard-state-filter" multiple size="1">
-        <option value="">All States</option>
-      </select>
-    </div>
-  </section>
-
-  <section class="bulk-actions">
-    <div>
-      <label>Bulk state:<select id="bulk-state">
-        <option value="">Choose state</option>
-        <option value="Pending">Pending</option>
-        <option value="In Progress">In Progress</option>
-        <option value="Complete">Complete</option>
-      </select></label>
-      <button id="apply-bulk-state">Apply</button>
-    </div>
-    <div>
-      <label>Bulk priority:<select id="bulk-priority">
-        <option value="">Choose priority</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select></label>
-      <button id="apply-bulk-priority">Apply</button>
+      <div class="filter-group">
+        <label for="dashboard-area-filter">Area</label>
+        <select id="dashboard-area-filter" multiple size="1">
+          <option value="">All Areas</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="dashboard-interior-exterior-filter">Interior/Exterior</label>
+        <select id="dashboard-interior-exterior-filter" multiple size="1">
+          <option value="">All Interior/Exterior</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="dashboard-upstairs-downstairs-filter">Upstairs/Downstairs</label>
+        <select id="dashboard-upstairs-downstairs-filter" multiple size="1">
+          <option value="">All Up/Down</option>
+        </select>
+      </div>
     </div>
   </section>
 
   <section class="table-panel">
+
     <table id="task-table">
       <thead>
         <tr>
-          <th><input id="select-all" type="checkbox" /></th>          <th data-sort="id">ID</th>          <th data-sort="property">Property</th>
+          <th><input id="select-all" type="checkbox" /></th>
+          <th data-sort="id">ID</th>
+          <th data-sort="property">Property</th>
           <th data-sort="interiorExterior">Interior/Exterior</th>
           <th data-sort="upstairsDownstairs">Up/Down</th>
           <th data-sort="area">Area</th>
@@ -83,7 +112,7 @@
           <th data-sort="cost">Cost</th>
           <th data-sort="state">State</th>
           <th data-sort="dateCompleted">Date Completed</th>
-            <th>Actions</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -101,38 +130,45 @@
     </div>
   </section>
 
-<div id="task-modal" class="modal hidden">
-      <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <h2 id="modal-title">Add Task</h2>
-        <form id="task-form">
-          <div class="form-grid">
-            <label>Property<select name="property" required></select></label>
-            <label>Interior/Exterior<select name="interiorExterior"></select></label>
-            <label>Upstairs/Downstairs<select name="upstairsDownstairs"></select></label>
-            <label>Area<select name="area"></select></label>
-            <label>Category<select name="category"></select></label>
-            <label>Task Description<textarea name="description" required></textarea></label>
-            <label>Priority<select name="priority">
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select></label>
-            <label>Order<input name="order" /></label>
-            <label>Cost ($)<input name="cost" type="number" step="0.01" min="0" /></label>
-            <label>State<select name="state">
-                <option value="Pending">Pending</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Complete">Complete</option>
-              </select></label>
-          </div>
-          <div class="form-actions">
-            <button type="submit">Save Task</button>
-            <button id="close-modal" type="button">Cancel</button>
-          </div>
-        </form>
-      </div>
+  <div id="task-modal" class="modal hidden">
+    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <h2 id="modal-title">Add Task</h2>
+      <form id="task-form">
+        <input name="id" type="hidden" />
+        <div class="form-grid">
+          <label>ID<input name="idDisplay" type="text" disabled placeholder="Auto-generated" /></label>
+          <label>Property<select name="property" required></select></label>
+          <label>Interior/Exterior<select name="interiorExterior"></select></label>
+          <label>Upstairs/Downstairs<select name="upstairsDownstairs"></select></label>
+          <label>Area<select name="area"></select></label>
+          <label>Category<select name="category"></select></label>
+          <label>Task Description<textarea name="description" required></textarea></label>
+          <label>Priority<select name="priority">
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+            </select></label>
+          <label>Order<input name="order" /></label>
+          <label>Cost ($)<input name="cost" type="number" step="0.01" min="0" /></label>
+          <label>State<select name="state">
+              <option value="Pending">Pending</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Complete">Complete</option>
+              <option value="Not Started">Not Started</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Deferred">Deferred</option>
+            </select></label>
+          <label>Date Completed<input name="dateCompleted" type="date" /></label>
+        </div>
+        <div class="form-actions">
+          <button type="submit">Save Task</button>
+          <button id="close-modal" type="button">Cancel</button>
+        </div>
+      </form>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="dashboard.js"></script>
 </body>
 </html>
