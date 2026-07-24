@@ -13,7 +13,7 @@
 <body>
   <header class="app-header">
     <div>
-      <h1>Home Maintenance Tracker</h1>
+      <h1>Home Maintenance Tracker <span id="item-counter" class="item-counter"></span></h1>
       <p>Mobile view for property tasks</p>
     </div>
     <button id="refresh-button" type="button">Refresh</button>
@@ -22,24 +22,39 @@
   <section class="controls">
     <input id="search-input" type="search" placeholder="Search tasks..." />
     <div class="filter-row">
-      <select id="filter-property" multiple size="1">
-        <option value="">All Properties</option>
-      </select>
-      <select id="filter-priority" multiple size="1">
-        <option value="">All Priorities</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-      <select id="filter-category" multiple size="1">
-        <option value="">All Categories</option>
-      </select>
-      <select id="filter-area" multiple size="1">
-        <option value="">All Areas</option>
-      </select>
-      <select id="filter-state" multiple size="1">
-        <option value="">All States</option>
-      </select>
+      <div class="filter-group">
+        <label for="filter-property">Property</label>
+        <select id="filter-property" multiple size="1">
+          <option value="">All Properties</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-priority">Priority</label>
+        <select id="filter-priority" multiple size="1">
+          <option value="">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-category">Category</label>
+        <select id="filter-category" multiple size="1">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-area">Area</label>
+        <select id="filter-area" multiple size="1">
+          <option value="">All Areas</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label for="filter-state">State</label>
+        <select id="filter-state" multiple size="1">
+          <option value="">All States</option>
+        </select>
+      </div>
     </div>
   </section>
 

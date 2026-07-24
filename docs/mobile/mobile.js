@@ -27,7 +27,8 @@ const elements = {
   closeModal: document.querySelector('#close-modal'),
   taskForm: document.querySelector('#task-form'),
   modalTitle: document.querySelector('#modal-title'),
-  refreshButton: document.querySelector('#refresh-button')
+  refreshButton: document.querySelector('#refresh-button'),
+  itemCounter: document.querySelector('#item-counter')
 };
 
 window.addEventListener('DOMContentLoaded', initialize); 
@@ -134,6 +135,9 @@ function filterTasks() {
 
 function renderTasks() {
   const filteredTasks = filterTasks();
+  if (elements.itemCounter) {
+    elements.itemCounter.textContent = `(${filteredTasks.length} item${filteredTasks.length === 1 ? '' : 's'})`;
+  }
   const grouped = groupBy(filteredTasks, 'property');
 
   elements.taskContainer.innerHTML = Object.keys(grouped).length === 0
