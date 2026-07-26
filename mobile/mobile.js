@@ -84,6 +84,10 @@ function normalizeProperty(value) {
     .replace(/^-+|-+$/g, '') || 'unknown';
 }
 
+function normalizePriorityClass(value) {
+  return normalizePriority(value).toLowerCase();
+}
+
 function onFilterChange() {
   state.filters.search = elements.searchInput.value.trim().toLowerCase();
   state.filters.property = getSelectValues(elements.filterProperty);
@@ -96,7 +100,7 @@ function onFilterChange() {
 
 function onSortOrder() {
   state.orderSortDirection = state.orderSortDirection === 'asc' ? 'desc' : 'asc';
-  elements.sortOrderButton.textContent = state.orderSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending';
+  elements.sortOrderButton.textContent = state.orderSortDirection === 'asc' ? 'Sort Ascending' : 'Sort Descending';
   elements.sortOrderButton.classList.toggle('active', Boolean(state.orderSortDirection));
   renderTasks();
 }
@@ -218,9 +222,9 @@ function renderTaskCard(task) {
           <small class="meta">${task.area ? `${task.area} · ` : ''}${task.category || 'No category'}</small>
         </div>
         <div class="badges">
-          <span class="badge badge-${task.priority.toLowerCase()}">${normalizePriority(task.priority)}</span>
-          <span class="badge badge-order">${task.order || '—'}</span>
-          <span class="badge badge-state badge-state-${normalizeState(task.state)}">${task.state || 'Pending'}</span>
+          <span class="badge badge-priority badge-priority-${normalizePriorityClass(task.priority)}">Priority: ${normalizePriority(task.priority)}</span>
+          <span class="badge badge-order">Order: ${task.order || '—'}</span>
+          <span class="badge badge-state badge-state-${normalizeState(task.state)}">State: ${task.state || 'Pending'}</span>
         </div>
       </div>
       <div class="task-row">

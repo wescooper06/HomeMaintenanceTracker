@@ -30,11 +30,11 @@ function parseOrder(value) {
 async function writeTaskRow(rowIndex, task) {
   const token = await getAccessToken();
   const body = {
-    range: `${SHEET_NAME}!A${rowIndex}:L${rowIndex}`,
+    range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
     majorDimension: 'ROWS',
     values: [formatTaskRow(task)]
   };
-  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A${rowIndex}:L${rowIndex}`, {
+  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A${rowIndex}:J${rowIndex}`, {
     valueInputOption: 'RAW'
   });
   const response = await fetch(url, {
@@ -111,7 +111,7 @@ export async function addTask(task) {
   }
 
   const values = formatTaskRow(normalizedTask);
-  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A:L:append`, {
+  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A:J:append`, {
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS'
   });
@@ -166,12 +166,12 @@ export async function updateTask(rowIndex, values) {
   }
 
   const body = {
-    range: `${SHEET_NAME}!A${rowIndex}:L${rowIndex}`,
+    range: `${SHEET_NAME}!A${rowIndex}:J${rowIndex}`,
     majorDimension: 'ROWS',
     values: [formatTaskRow(merged)]
   };
 
-  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A${rowIndex}:L${rowIndex}`, {
+  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A${rowIndex}:J${rowIndex}`, {
     valueInputOption: 'RAW'
   });
 
