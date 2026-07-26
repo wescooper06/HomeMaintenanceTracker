@@ -1,8 +1,6 @@
 export const SHEET_HEADERS = [
   'ID',
   'Property',
-  'Interior/Exterior',
-  'Upstairs/Downstairs',
   'Area',
   'Category',
   'Task Description',
@@ -18,16 +16,14 @@ export function parseTaskRow(row = [], rowIndex) {
     rowIndex,
     id: row[0] || '',
     property: row[1] || '',
-    interiorExterior: row[2] || '',
-    upstairsDownstairs: row[3] || '',
-    area: row[4] || '',
-    category: row[5] || '',
-    description: row[6] || '',
-    priority: row[7] || 'Low',
-    order: row[8] || '',
-    cost: parseFloat(row[9]) || 0,
-    state: row[10] || 'Pending',
-    dateCompleted: row[11] || ''
+    area: row[2] || '',
+    category: row[3] || '',
+    description: row[4] || '',
+    priority: row[5] || 'Low',
+    order: row[6] || '',
+    cost: parseFloat(row[7]) || 0,
+    state: row[8] || 'Pending',
+    dateCompleted: row[9] || ''
   };
 }
 
@@ -35,8 +31,6 @@ export function formatTaskRow(task) {
   return [
     task.id || '',
     task.property || '',
-    task.interiorExterior || '',
-    task.upstairsDownstairs || '',
     task.area || '',
     task.category || '',
     task.description || '',

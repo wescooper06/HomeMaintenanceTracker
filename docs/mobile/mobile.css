@@ -196,6 +196,10 @@ textarea {
 .badge-high { background: #f87171; color: white; }
 .badge-medium { background: #facc15; color: #111827; }
 .badge-low { background: #34d399; color: #0f172a; }
+.badge-priority { background: rgba(37, 99, 235, 0.12); color: var(--text); }
+.badge-priority-high { background: #ef4444; color: white; }
+.badge-priority-medium { background: #f59e0b; color: white; }
+.badge-priority-low { background: #10b981; color: white; }
 .badge-order { background: rgba(37, 99, 235, 0.18); color: #1e3a8a; }
 .badge-state { background: rgba(37, 99, 235, 0.12); color: var(--text); }
 .badge-state-pending { background: #bfdbfe; color: #1e40af; }
