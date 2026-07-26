@@ -125,6 +125,7 @@ textarea {
 
 #open-add-form,
 #refresh-button,
+#sort-order,
 .cta-button,
 .modal-content button {
   border: none;
@@ -137,9 +138,14 @@ textarea {
 
 #open-add-form:hover,
 #refresh-button:hover,
+#sort-order:hover,
 .cta-button:hover,
 .modal-content button:hover {
   opacity: 0.95;
+}
+
+#sort-order.active {
+  background: #1d4ed8;
 }
 
 #task-container {
@@ -190,7 +196,55 @@ textarea {
 .badge-high { background: #f87171; color: white; }
 .badge-medium { background: #facc15; color: #111827; }
 .badge-low { background: #34d399; color: #0f172a; }
+.badge-order { background: rgba(37, 99, 235, 0.18); color: #1e3a8a; }
 .badge-state { background: rgba(37, 99, 235, 0.12); color: var(--text); }
+.badge-state-pending { background: #bfdbfe; color: #1e40af; }
+.badge-state-in-progress { background: #fcd34d; color: #92400e; }
+.badge-state-complete { background: #34d399; color: #065f46; }
+.badge-state-not-started { background: #cbd5e1; color: #334155; }
+.badge-state-cancelled { background: #fecaca; color: #991b1b; }
+.badge-state-deferred { background: #e2e8f0; color: #0f172a; }
+
+.id-line {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.id-badge {
+  background: var(--primary);
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.property-badge {
+  background: var(--accent);
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 14px rgba(245, 158, 11, 0.12);
+}
+
+.property-badge-house { background: #2563eb; color: white; }
+.property-badge-apartment { background: #8b5cf6; color: white; }
+.property-badge-shop { background: #16a34a; color: white; }
+.property-badge-yard-field { background: #f59e0b; color: #111827; }
+.property-badge-unknown { background: #94a3b8; color: white; }
+
+.task-title {
+  font-size: 1.05rem;
+}
+
+.meta {
+  color: var(--muted);
+  display: block;
+  margin-top: 0.25rem;
+}
 
 .task-card small {
   color: var(--muted);
@@ -209,6 +263,20 @@ textarea {
   border: 1px solid transparent;
   background: var(--surface);
   color: var(--text);
+}
+
+.task-buttons .cta-button {
+  background: var(--primary);
+  color: white;
+  font-weight: 700;
+  padding: 0.95rem 1.25rem;
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.12);
+  border: none;
+}
+
+.task-buttons .cta-button:hover {
+  transform: translateY(-1px);
+  opacity: 0.98;
 }
 
 .task-buttons button.complete-button { background: var(--success); color: white; }
