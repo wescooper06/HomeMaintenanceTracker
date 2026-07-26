@@ -11,7 +11,8 @@ const state = {
     area: [],
     state: []
   },
-  currentEdit: null
+  currentEdit: null,
+  orderSortDirection: null
 };
 
 const elements = {
@@ -23,6 +24,7 @@ const elements = {
   filterState: document.querySelector('#filter-state'),
   taskContainer: document.querySelector('#task-container'),
   openAddForm: document.querySelector('#open-add-form'),
+  sortOrderButton: document.querySelector('#sort-order'),
   taskModal: document.querySelector('#task-modal'),
   closeModal: document.querySelector('#close-modal'),
   taskForm: document.querySelector('#task-form'),
@@ -41,6 +43,7 @@ function initialize() {
   elements.filterArea.addEventListener('change', onFilterChange);
   elements.filterState.addEventListener('change', onFilterChange);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
+  elements.sortOrderButton.addEventListener('click', onSortOrder);
   elements.closeModal.addEventListener('click', closeTaskModal);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
   elements.refreshButton.addEventListener('click', loadTasks);
@@ -65,6 +68,22 @@ function getSelectValues(select) {
     .filter(Boolean);
 }
 
+function normalizeState(value) {
+  return String(value || 'Pending')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+function normalizeProperty(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'unknown';
+}
+
 function onFilterChange() {
   state.filters.search = elements.searchInput.value.trim().toLowerCase();
   state.filters.property = getSelectValues(elements.filterProperty);
@@ -72,6 +91,13 @@ function onFilterChange() {
   state.filters.category = getSelectValues(elements.filterCategory);
   state.filters.area = getSelectValues(elements.filterArea);
   state.filters.state = getSelectValues(elements.filterState);
+  renderTasks();
+}
+
+function onSortOrder() {
+  state.orderSortDirection = state.orderSortDirection === 'asc' ? 'desc' : 'asc';
+  elements.sortOrderButton.textContent = state.orderSortDirection === 'asc' ? 'Sort Descending' : 'Sort Ascending';
+  elements.sortOrderButton.classList.toggle('active', Boolean(state.orderSortDirection));
   renderTasks();
 }
 
@@ -86,14 +112,12 @@ function renderFilters() {
   elements.filterArea.innerHTML = '<option value="">All Areas</option>' + areas.map((area) => `<option value="${area}">${area}</option>`).join('');
   elements.filterState.innerHTML = '<option value="">All States</option>' + states.map((value) => `<option value="${value}">${value}</option>`).join('');
   setSelectOptions(elements.taskForm.property, properties, 'Choose property');
-  setSelectOptions(elements.taskForm.interiorExterior, getUniqueOptions('interiorExterior'), 'Choose interior/exterior');
-  setSelectOptions(elements.taskForm.upstairsDownstairs, getUniqueOptions('upstairsDownstairs'), 'Choose up/down');
   setSelectOptions(elements.taskForm.area, areas, 'Choose area');
   setSelectOptions(elements.taskForm.category, categories, 'Choose category');
 }
 
 function filterTasks() {
-  return state.tasks
+  const filtered = state.tasks
     .filter((task) => {
       const search = state.filters.search;
       const matchSearch = !search || [
@@ -109,8 +133,27 @@ function filterTasks() {
       const matchArea = !state.filters.area.length || state.filters.area.includes(task.area);
       const matchState = !state.filters.state.length || state.filters.state.includes(task.state);
       return matchSearch && matchProperty && matchPriority && matchCategory && matchArea && matchState;
-    })
-    .sort((a, b) => a.description.localeCompare(b.description));
+    });
+
+  if (state.orderSortDirection) {
+    return filtered.sort((a, b) => {
+      const parseOrderValue = (value) => {
+        const trimmed = String(value ?? '').trim();
+        return trimmed === '' ? NaN : Number(trimmed);
+      };
+
+      const aOrder = parseOrderValue(a.order);
+      const bOrder = parseOrderValue(b.order);
+      if (Number.isFinite(aOrder) && Number.isFinite(bOrder)) {
+        return state.orderSortDirection === 'asc' ? aOrder - bOrder : bOrder - aOrder;
+      }
+      if (Number.isFinite(aOrder)) return -1;
+      if (Number.isFinite(bOrder)) return 1;
+      return String(a.description || '').localeCompare(b.description || '');
+    });
+  }
+
+  return filtered.sort((a, b) => a.description.localeCompare(b.description));
 }
 
   function getUniqueOptions(field) {
@@ -138,8 +181,15 @@ function renderTasks() {
   if (elements.itemCounter) {
     elements.itemCounter.textContent = `(${filteredTasks.length} item${filteredTasks.length === 1 ? '' : 's'})`;
   }
-  const grouped = groupBy(filteredTasks, 'property');
 
+  if (state.orderSortDirection) {
+    elements.taskContainer.innerHTML = filteredTasks.length === 0
+      ? '<p class="empty-state">No tasks matched the current filters.</p>'
+      : filteredTasks.map((task) => renderTaskCard(task)).join('');
+    return;
+  }
+
+  const grouped = groupBy(filteredTasks, 'property');
   elements.taskContainer.innerHTML = Object.keys(grouped).length === 0
     ? '<p class="empty-state">No tasks matched the current filters.</p>'
     : Object.entries(grouped).map(([property, tasks]) => renderPropertyGroup(property, tasks)).join('');
@@ -160,17 +210,20 @@ function renderTaskCard(task) {
     <article class="task-card">
       <div class="task-row">
         <div>
-          <strong>${task.description}</strong>
-          <small>${task.area ? `${task.area} · ` : ''}${task.category || 'No category'}</small>
+          <div class="id-line">
+            <span class="id-badge">ID ${task.id || '—'}</span>
+            <span class="property-badge property-badge-${normalizeProperty(task.property)}">${task.property || '—'}</span>
+            <strong class="task-title">${task.description}</strong>
+          </div>
+          <small class="meta">${task.area ? `${task.area} · ` : ''}${task.category || 'No category'}</small>
         </div>
         <div class="badges">
           <span class="badge badge-${task.priority.toLowerCase()}">${normalizePriority(task.priority)}</span>
-          <span class="badge badge-state">${task.state || 'Pending'}</span>
+          <span class="badge badge-order">${task.order || '—'}</span>
+          <span class="badge badge-state badge-state-${normalizeState(task.state)}">${task.state || 'Pending'}</span>
         </div>
       </div>
       <div class="task-row">
-        <div><small>${task.interiorExterior || 'Interior/Exterior not set'}</small></div>
-        <div><small>${task.upstairsDownstairs || 'Up/Down not set'}</small></div>
         <div><small>${formatCurrency(task.cost)}</small></div>
       </div>
       <div class="task-row task-buttons">
@@ -186,8 +239,6 @@ function openTaskModal(task) {
   state.currentEdit = task;
   elements.modalTitle.textContent = task.rowIndex ? 'Edit Task' : 'Add Task';
   elements.taskForm.property.value = task.property || '';
-  elements.taskForm.interiorExterior.value = task.interiorExterior || '';
-  elements.taskForm.upstairsDownstairs.value = task.upstairsDownstairs || '';
   elements.taskForm.area.value = task.area || '';
   elements.taskForm.category.value = task.category || '';
   elements.taskForm.description.value = task.description || '';
@@ -196,8 +247,6 @@ function openTaskModal(task) {
   elements.taskForm.cost.value = task.cost || '';
   elements.taskForm.state.value = task.state || 'Pending';
   ensureOptionExists(elements.taskForm.property, task.property);
-  ensureOptionExists(elements.taskForm.interiorExterior, task.interiorExterior);
-  ensureOptionExists(elements.taskForm.upstairsDownstairs, task.upstairsDownstairs);
   ensureOptionExists(elements.taskForm.area, task.area);
   ensureOptionExists(elements.taskForm.category, task.category);
   elements.taskModal.classList.remove('hidden');
@@ -211,10 +260,8 @@ function closeTaskModal() {
 
 async function onSubmitTaskForm(event) {
   event.preventDefault();
-  const taskData = {
+    const taskData = {
     property: elements.taskForm.property.value.trim(),
-    interiorExterior: elements.taskForm.interiorExterior.value.trim(),
-    upstairsDownstairs: elements.taskForm.upstairsDownstairs.value.trim(),
     area: elements.taskForm.area.value.trim(),
     category: elements.taskForm.category.value.trim(),
     description: elements.taskForm.description.value.trim(),

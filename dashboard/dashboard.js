@@ -9,8 +9,6 @@ const state = {
     priority: [],
     category: [],
     area: [],
-    interiorExterior: [],
-    upstairsDownstairs: [],
     state: []
   },
   sortKey: 'property',
@@ -29,8 +27,7 @@ const elements = {
   priorityIcons: document.querySelector('#priority-icons'),
   stateIcons: document.querySelector('#state-icons'),
   areaFilter: document.querySelector('#dashboard-area-filter'),
-  interiorExteriorFilter: document.querySelector('#dashboard-interior-exterior-filter'),
-  upstairsDownstairsFilter: document.querySelector('#dashboard-upstairs-downstairs-filter'),
+  
   selectAll: document.querySelector('#select-all'),
   refreshButton: document.querySelector('#refresh-data'),
   deleteSelected: document.querySelector('#delete-selected'),
@@ -62,8 +59,6 @@ function initialize() {
   elements.tableHeaders.forEach((header) => header.addEventListener('click', onHeaderSort));
   // Dashboard slicers
   if (elements.areaFilter) elements.areaFilter.addEventListener('change', onFilterChange);
-  if (elements.interiorExteriorFilter) elements.interiorExteriorFilter.addEventListener('change', onFilterChange);
-  if (elements.upstairsDownstairsFilter) elements.upstairsDownstairsFilter.addEventListener('change', onFilterChange);
   setupPropertyIcons();
   setupIconGroup('category');
   setupIconGroup('priority');
@@ -90,8 +85,7 @@ function populateFilterOptions() {
   const priorities = getUniqueOptions('priority').length ? getUniqueOptions('priority') : ['High', 'Medium', 'Low'];
   const states = getUniqueOptions('state');
   const areas = getUniqueOptions('area');
-  const interiors = getUniqueOptions('interiorExterior');
-  const upstairs = getUniqueOptions('upstairsDownstairs');
+  
 
   renderIconButtons(elements.categoryIcons, categories, 'category');
   renderIconButtons(elements.priorityIcons, priorities, 'priority');
@@ -102,21 +96,15 @@ function populateFilterOptions() {
   updateIconSelection('state');
   // Populate the dashboard-level filter selects so they reflect sheet data
   setSelectOptions(elements.areaFilter, areas, 'All Areas');
-  setSelectOptions(elements.interiorExteriorFilter, interiors, 'All Interior/Exterior');
-  setSelectOptions(elements.upstairsDownstairsFilter, upstairs, 'All Up/Down');
 
   // Also populate the modal/task-form selects
   setSelectOptions(elements.taskForm.property, properties, 'Choose property');
-  setSelectOptions(elements.taskForm.interiorExterior, interiors, 'Choose interior/exterior');
-  setSelectOptions(elements.taskForm.upstairsDownstairs, upstairs, 'Choose up/down');
   setSelectOptions(elements.taskForm.area, areas, 'Choose area');
   setSelectOptions(elements.taskForm.category, categories, 'Choose category');
 }
 
 function populateTaskFormOptions() {
   setSelectOptions(elements.taskForm.property, getUniqueOptions('property'), 'Choose property');
-  setSelectOptions(elements.taskForm.interiorExterior, getUniqueOptions('interiorExterior'), 'Choose interior/exterior');
-  setSelectOptions(elements.taskForm.upstairsDownstairs, getUniqueOptions('upstairsDownstairs'), 'Choose up/down');
   setSelectOptions(elements.taskForm.area, getUniqueOptions('area'), 'Choose area');
   setSelectOptions(elements.taskForm.category, getUniqueOptions('category'), 'Choose category');
 }
@@ -153,8 +141,6 @@ function getSelectValues(select) {
 function onFilterChange() {
   state.filters.search = elements.search.value.trim().toLowerCase();
   state.filters.area = getSelectValues(elements.areaFilter);
-  state.filters.interiorExterior = getSelectValues(elements.interiorExteriorFilter);
-  state.filters.upstairsDownstairs = getSelectValues(elements.upstairsDownstairsFilter);
   renderTable();
   renderCharts();
 }
@@ -567,8 +553,6 @@ function getFilteredTasks() {
       const matchesSearch = !state.filters.search || [
         task.id,
         task.property,
-        task.interiorExterior,
-        task.upstairsDownstairs,
         task.area,
         task.category,
         task.description,
@@ -579,10 +563,8 @@ function getFilteredTasks() {
       const matchesPriority = !state.filters.priority.length || state.filters.priority.includes(task.priority);
       const matchesCategory = !state.filters.category.length || state.filters.category.includes(task.category);
       const matchesArea = !state.filters.area.length || state.filters.area.includes(task.area);
-      const matchesInterior = !state.filters.interiorExterior.length || state.filters.interiorExterior.includes(task.interiorExterior);
-      const matchesUpstairs = !state.filters.upstairsDownstairs.length || state.filters.upstairsDownstairs.includes(task.upstairsDownstairs);
       const matchesState = !state.filters.state.length || state.filters.state.includes(task.state);
-      return matchesSearch && matchesProperty && matchesPriority && matchesCategory && matchesArea && matchesInterior && matchesUpstairs && matchesState;
+      return matchesSearch && matchesProperty && matchesPriority && matchesCategory && matchesArea && matchesState;
     })
     .sort((a, b) => {
       if (state.sortKey === 'order') {
@@ -627,8 +609,7 @@ function renderTable() {
       <td><input type="checkbox" data-id="${task.rowIndex}" ${state.selectedIds.has(task.rowIndex) ? 'checked' : ''}></td>
       <td data-field="id">${task.id || ''}</td>
       <td data-field="property">${task.property || ''}</td>
-      <td data-field="interiorExterior">${task.interiorExterior || ''}</td>
-      <td data-field="upstairsDownstairs">${task.upstairsDownstairs || ''}</td>
+      
       <td data-field="area">${task.area || ''}</td>
       <td data-field="category">${task.category || ''}</td>
       <td data-field="description">${task.description || ''}</td>
@@ -711,7 +692,7 @@ async function onTableClick(event) {
       </select>
     `;
       cell.classList.add('editing');
-  } else if (['property', 'interiorExterior', 'upstairsDownstairs', 'area', 'category'].includes(field)) {
+  } else if (['property', 'area', 'category'].includes(field)) {
     const options = getUniqueOptions(field);
     const selectOptions = [`<option value=""></option>`, ...options.map((value) => `<option value="${value}" ${task[field] === value ? 'selected' : ''}>${value}</option>`)];
     cell.innerHTML = `<select data-edit-field="${field}">${selectOptions.join('')}</select>`;
@@ -773,6 +754,10 @@ async function onCellEditComplete(event) {
 
   try {
     await updateTask(rowId, { [field]: updateValue });
+    if (field === 'order') {
+      await loadTasks();
+      return;
+    }
     task[field] = updateValue;
     // editing completed for this cell
     const editingCell = elements.tableBody.querySelector('td.editing');
@@ -807,8 +792,6 @@ function openTaskModal(task, mode = 'add') {
     elements.taskIdDisplay.value = task.id || '';
   }
   elements.taskForm.property.value = task.property || '';
-  elements.taskForm.interiorExterior.value = task.interiorExterior || '';
-  elements.taskForm.upstairsDownstairs.value = task.upstairsDownstairs || '';
   elements.taskForm.area.value = task.area || '';
   elements.taskForm.category.value = task.category || '';
   elements.taskForm.description.value = task.description || '';
@@ -818,8 +801,6 @@ function openTaskModal(task, mode = 'add') {
   elements.taskForm.state.value = task.state || 'Pending';
   elements.taskForm.dateCompleted.value = task.dateCompleted || '';
   ensureOptionExists(elements.taskForm.property, task.property);
-  ensureOptionExists(elements.taskForm.interiorExterior, task.interiorExterior);
-  ensureOptionExists(elements.taskForm.upstairsDownstairs, task.upstairsDownstairs);
   ensureOptionExists(elements.taskForm.area, task.area);
   ensureOptionExists(elements.taskForm.category, task.category);
   elements.taskModal.classList.remove('hidden');
@@ -837,10 +818,9 @@ async function onSubmitTaskForm(event) {
   const taskData = {
     id: elements.taskForm.id.value.trim(),
     property: elements.taskForm.property.value.trim(),
-    interiorExterior: elements.taskForm.interiorExterior.value.trim(),
-    upstairsDownstairs: elements.taskForm.upstairsDownstairs.value.trim(),
     area: elements.taskForm.area.value.trim(),
     category: elements.taskForm.category.value.trim(),
+    
     description: elements.taskForm.description.value.trim(),
     priority: elements.taskForm.priority.value,
     order: elements.taskForm.order.value.trim(),

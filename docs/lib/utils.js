@@ -89,8 +89,6 @@ export function getDefaultTask() {
   return {
     id: '',
     property: '',
-    interiorExterior: '',
-    upstairsDownstairs: '',
     area: '',
     category: '',
     description: '',

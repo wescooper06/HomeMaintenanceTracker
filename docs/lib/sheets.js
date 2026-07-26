@@ -20,6 +20,51 @@ function buildHeaders(token) {
   };
 }
 
+function parseOrder(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+  const number = Number(raw);
+  return Number.isFinite(number) && Number.isInteger(number) ? number : null;
+}
+
+async function writeTaskRow(rowIndex, task) {
+  const token = await getAccessToken();
+  const body = {
+    range: `${SHEET_NAME}!A${rowIndex}:L${rowIndex}`,
+    majorDimension: 'ROWS',
+    values: [formatTaskRow(task)]
+  };
+  const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A${rowIndex}:L${rowIndex}`, {
+    valueInputOption: 'RAW'
+  });
+  const response = await fetch(url, {
+    method: 'PUT',
+    headers: buildHeaders(token),
+    body: JSON.stringify(body)
+  });
+  if (!response.ok) {
+    throw new Error(`Unable to write task row ${rowIndex}: ${response.statusText}`);
+  }
+  return response.json();
+}
+
+async function shiftTaskOrders(tasks, excludedRowIndex, targetOrder) {
+  const orderTarget = parseOrder(targetOrder);
+  if (orderTarget === null) return;
+
+  const tasksToShift = tasks
+    .filter((task) => task.rowIndex !== excludedRowIndex)
+    .map((task) => ({ task, order: parseOrder(task.order) }))
+    .filter(({ order }) => order !== null && order >= orderTarget)
+    .sort((a, b) => a.order - b.order || a.task.rowIndex - b.task.rowIndex);
+
+  let nextOrder = orderTarget;
+  for (const { task } of tasksToShift) {
+    nextOrder += 1;
+    await writeTaskRow(task.rowIndex, { ...task, order: nextOrder });
+  }
+}
+
 export async function getTasks() {
   const token = await getAccessToken();
   const url = buildUrl(`values/${encodeURIComponent(SHEET_NAME)}!A2:ZZ`, {
@@ -53,6 +98,12 @@ export async function addTask(task) {
       .filter((n) => Number.isFinite(n) && !Number.isNaN(n));
     const maxId = numericIds.length ? Math.max(...numericIds) : 0;
     normalizedTask.id = String(maxId + 1);
+  }
+
+  const insertOrder = parseOrder(normalizedTask.order);
+  if (insertOrder !== null) {
+    const existing = await getTasks();
+    await shiftTaskOrders(existing, null, insertOrder);
   }
 
   if (String(normalizedTask.state).toLowerCase() === 'complete' && !normalizedTask.dateCompleted) {
@@ -106,6 +157,12 @@ export async function updateTask(rowIndex, values) {
 
   if (String(merged.state).toLowerCase() === 'complete' && !merged.dateCompleted) {
     merged.dateCompleted = formatDate(new Date());
+  }
+
+  const newOrder = parseOrder(values.order);
+  const oldOrder = parseOrder(existing.order);
+  if (newOrder !== null && newOrder !== oldOrder) {
+    await shiftTaskOrders(tasks, rowIndex, newOrder);
   }
 
   const body = {
