@@ -124,6 +124,7 @@ textarea {
 }
 
 #open-add-form,
+#project-list-button,
 #refresh-button,
 #sort-order,
 .cta-button,
@@ -137,11 +138,18 @@ textarea {
 }
 
 #open-add-form:hover,
+#project-list-button:hover,
 #refresh-button:hover,
 #sort-order:hover,
 .cta-button:hover,
 .modal-content button:hover {
   opacity: 0.95;
+}
+
+#project-list-button,
+.project-list-button {
+  background: #7c3aed;
+  color: white;
 }
 
 #sort-order.active {
@@ -365,4 +373,110 @@ textarea {
   .form-grid label:nth-child(6) {
     grid-column: span 2;
   }
+}
+
+.project-drawer {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 300px;
+  height: 100%;
+  background: var(--surface);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  transition: right 0.3s ease;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+}
+
+.project-drawer.open {
+  right: 0;
+}
+
+.project-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-drawer-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.project-drawer-header button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.project-drawer-content {
+  padding: 0.75rem 1rem 1rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.project-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.project-drawer-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.project-drawer-main {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.project-id,
+.project-property,
+.project-area {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.project-property {
+  color: #c62828;
+}
+
+.project-description {
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.project-order {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--primary);
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.project-drawer-empty {
+  color: var(--muted);
+  margin: 0;
 }

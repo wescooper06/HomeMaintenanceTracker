@@ -16,7 +16,8 @@ const state = {
   selectedIds: new Set(),
   editingRowIndex: null,
   costChart: null,
-  countChart: null
+  countChart: null,
+  projectDrawerOpen: false
 };
 
 const elements = {
@@ -30,10 +31,14 @@ const elements = {
   
   selectAll: document.querySelector('#select-all'),
   refreshButton: document.querySelector('#refresh-data'),
+  projectListButton: document.querySelector('#project-list-button'),
   deleteSelected: document.querySelector('#delete-selected'),
   openAddForm: document.querySelector('#open-add-form'),
   taskModal: document.querySelector('#task-modal'),
   closeModal: document.querySelector('#close-modal'),
+  projectDrawer: document.querySelector('#projectDrawer'),
+  closeProjectDrawer: document.querySelector('#close-project-drawer'),
+  projectDrawerContent: document.querySelector('#project-drawer-content'),
   taskForm: document.querySelector('#task-form'),
   taskIdDisplay: document.querySelector('#task-form input[name="idDisplay"]'),
   modalTitle: document.querySelector('#modal-title'),
@@ -49,8 +54,10 @@ function initialize() {
   elements.search.addEventListener('input', onFilterChange);
   elements.selectAll.addEventListener('change', onSelectAll);
   elements.refreshButton.addEventListener('click', loadTasks);
+  if (elements.projectListButton) elements.projectListButton.addEventListener('click', toggleProjectDrawer);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask(), 'add'));
   elements.closeModal.addEventListener('click', closeTaskModal);
+  if (elements.closeProjectDrawer) elements.closeProjectDrawer.addEventListener('click', closeProjectDrawer);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
   elements.deleteSelected.addEventListener('click', deleteSelectedRows);
   elements.tableBody.addEventListener('click', onTableClick);
@@ -74,6 +81,9 @@ async function loadTasks() {
     populateTaskFormOptions();
     renderTable();
     renderCharts();
+    if (state.projectDrawerOpen) {
+      renderProjectList(tasks);
+    }
   } catch (error) {
     elements.tableBody.innerHTML = `<tr><td colspan="12">${error.message}</td></tr>`;
   }
@@ -468,9 +478,10 @@ function getStateIconSvg(value) {
     case 'in progress':
     case 'in-progress':
       return `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M3 12a9 9 0 0 0 9 9" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M12 3v4" stroke-linecap="round" stroke-linejoin="round" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 3h12M6 21h12" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M8 3c0 4 4 5 4 9s-4 5-4 9" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M16 3c0 4-4 5-4 9s4 5 4 9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       `;
     case 'not started':
@@ -601,6 +612,9 @@ function renderTable() {
   }
   if (!tasks.length) {
     elements.tableBody.innerHTML = '<tr><td colspan="14">No tasks found.</td></tr>';
+    if (state.projectDrawerOpen) {
+      renderProjectList(tasks);
+    }
     return;
   }
 
@@ -624,6 +638,74 @@ function renderTable() {
       </td>
     </tr>
   `).join('');
+
+  if (state.projectDrawerOpen) {
+    renderProjectList(tasks);
+  }
+}
+
+function renderProjectList(tasks) {
+  if (!elements.projectDrawerContent) return;
+  const projectTasks = tasks
+    .filter((task) => String(task.order || '').trim() !== '')
+    .filter((task) => {
+      const stateValue = String(task.state || '').trim().toLowerCase();
+      return stateValue !== 'complete' && stateValue !== 'completed';
+    })
+    .slice()
+    .sort((a, b) => {
+      const leftOrder = Number(String(a.order || '').trim());
+      const rightOrder = Number(String(b.order || '').trim());
+      if (Number.isFinite(leftOrder) && Number.isFinite(rightOrder)) {
+        return leftOrder - rightOrder;
+      }
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+  if (!projectTasks.length) {
+    elements.projectDrawerContent.innerHTML = '<p class="project-drawer-empty">No tasks to show.</p>';
+    return;
+  }
+
+  elements.projectDrawerContent.innerHTML = `
+    <ul class="project-drawer-list">
+      ${projectTasks.map((task) => `
+        <li class="project-drawer-item">
+          <div class="project-drawer-main">
+            <span class="project-id">ID ${task.id || ''}</span>
+            <span class="project-property">${task.property || 'Unspecified'}: ${task.area || 'No area'}</span>
+            <span class="project-description">${task.description || ''}</span>
+          </div>
+          <span class="project-order">${task.order || ''}</span>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function openProjectDrawer() {
+  state.projectDrawerOpen = true;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.add('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'false');
+  }
+  renderProjectList(getFilteredTasks());
+}
+
+function closeProjectDrawer() {
+  state.projectDrawerOpen = false;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.remove('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function toggleProjectDrawer() {
+  if (state.projectDrawerOpen) {
+    closeProjectDrawer();
+  } else {
+    openProjectDrawer();
+  }
 }
 
 async function onTableClick(event) {

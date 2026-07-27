@@ -12,7 +12,8 @@ const state = {
     state: []
   },
   currentEdit: null,
-  orderSortDirection: null
+  orderSortDirection: null,
+  projectDrawerOpen: false
 };
 
 const elements = {
@@ -25,8 +26,12 @@ const elements = {
   taskContainer: document.querySelector('#task-container'),
   openAddForm: document.querySelector('#open-add-form'),
   sortOrderButton: document.querySelector('#sort-order'),
+  projectListButton: document.querySelector('#project-list-button'),
   taskModal: document.querySelector('#task-modal'),
   closeModal: document.querySelector('#close-modal'),
+  projectDrawer: document.querySelector('#projectDrawer'),
+  closeProjectDrawer: document.querySelector('#close-project-drawer'),
+  projectDrawerContent: document.querySelector('#project-drawer-content'),
   taskForm: document.querySelector('#task-form'),
   modalTitle: document.querySelector('#modal-title'),
   refreshButton: document.querySelector('#refresh-button'),
@@ -43,8 +48,10 @@ function initialize() {
   elements.filterArea.addEventListener('change', onFilterChange);
   elements.filterState.addEventListener('change', onFilterChange);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
+  if (elements.projectListButton) elements.projectListButton.addEventListener('click', toggleProjectDrawer);
   elements.sortOrderButton.addEventListener('click', onSortOrder);
   elements.closeModal.addEventListener('click', closeTaskModal);
+  if (elements.closeProjectDrawer) elements.closeProjectDrawer.addEventListener('click', closeProjectDrawer);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
   elements.refreshButton.addEventListener('click', loadTasks);
   loadTasks();
@@ -56,6 +63,9 @@ async function loadTasks() {
     state.tasks = await getTasks();
     renderFilters();
     renderTasks();
+    if (state.projectDrawerOpen) {
+      renderProjectList(filterTasks());
+    }
   } catch (error) {
     elements.taskContainer.innerHTML = `<p class="error">${error.message}</p>`;
   }
@@ -190,6 +200,9 @@ function renderTasks() {
     elements.taskContainer.innerHTML = filteredTasks.length === 0
       ? '<p class="empty-state">No tasks matched the current filters.</p>'
       : filteredTasks.map((task) => renderTaskCard(task)).join('');
+    if (state.projectDrawerOpen) {
+      renderProjectList(filteredTasks);
+    }
     return;
   }
 
@@ -197,6 +210,74 @@ function renderTasks() {
   elements.taskContainer.innerHTML = Object.keys(grouped).length === 0
     ? '<p class="empty-state">No tasks matched the current filters.</p>'
     : Object.entries(grouped).map(([property, tasks]) => renderPropertyGroup(property, tasks)).join('');
+
+  if (state.projectDrawerOpen) {
+    renderProjectList(filteredTasks);
+  }
+}
+
+function renderProjectList(tasks) {
+  if (!elements.projectDrawerContent) return;
+  const projectTasks = tasks
+    .filter((task) => String(task.order || '').trim() !== '')
+    .filter((task) => {
+      const stateValue = String(task.state || '').trim().toLowerCase();
+      return stateValue !== 'complete' && stateValue !== 'completed';
+    })
+    .slice()
+    .sort((a, b) => {
+      const leftOrder = Number(String(a.order || '').trim());
+      const rightOrder = Number(String(b.order || '').trim());
+      if (Number.isFinite(leftOrder) && Number.isFinite(rightOrder)) {
+        return leftOrder - rightOrder;
+      }
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+  if (!projectTasks.length) {
+    elements.projectDrawerContent.innerHTML = '<p class="project-drawer-empty">No tasks to show.</p>';
+    return;
+  }
+
+  elements.projectDrawerContent.innerHTML = `
+    <ul class="project-drawer-list">
+      ${projectTasks.map((task) => `
+        <li class="project-drawer-item">
+          <div class="project-drawer-main">
+            <span class="project-id">ID ${task.id || ''}</span>
+            <span class="project-property">${task.property || 'Unspecified'}: ${task.area || 'No area'}</span>
+            <span class="project-description">${task.description || ''}</span>
+          </div>
+          <span class="project-order">${task.order || ''}</span>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function openProjectDrawer() {
+  state.projectDrawerOpen = true;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.add('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'false');
+  }
+  renderProjectList(filterTasks());
+}
+
+function closeProjectDrawer() {
+  state.projectDrawerOpen = false;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.remove('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function toggleProjectDrawer() {
+  if (state.projectDrawerOpen) {
+    closeProjectDrawer();
+  } else {
+    openProjectDrawer();
+  }
 }
 
 function renderPropertyGroup(property, tasks) {

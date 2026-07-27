@@ -60,6 +60,7 @@
 
   <section class="task-actions">
     <button id="open-add-form" type="button">Add Task</button>
+    <button id="project-list-button" class="project-list-button" type="button">Project List</button>
     <button id="sort-order" type="button">Sort Ascending</button>
   </section>
 
@@ -94,6 +95,14 @@
         </div>
       </form>
     </div>
+  </div>
+
+  <div id="projectDrawer" class="project-drawer" aria-hidden="true">
+    <div class="project-drawer-header">
+      <h2>Project List</h2>
+      <button id="close-project-drawer" type="button" aria-label="Close project list">X</button>
+    </div>
+    <div id="project-drawer-content" class="project-drawer-content"></div>
   </div>
 
   <script type="module" src="mobile.js"></script>

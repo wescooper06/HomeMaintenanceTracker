@@ -124,6 +124,7 @@ textarea {
 }
 
 #open-add-form,
+#project-list-button,
 #refresh-button,
 #sort-order,
 .cta-button,
@@ -137,11 +138,18 @@ textarea {
 }
 
 #open-add-form:hover,
+#project-list-button:hover,
 #refresh-button:hover,
 #sort-order:hover,
 .cta-button:hover,
 .modal-content button:hover {
   opacity: 0.95;
+}
+
+#project-list-button,
+.project-list-button {
+  background: #7c3aed;
+  color: white;
 }
 
 #sort-order.active {
