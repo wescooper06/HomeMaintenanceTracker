@@ -164,6 +164,24 @@
     <div id="project-drawer-content" class="project-drawer-content"></div>
   </div>
 
+  <div id="resourceDrawer" class="resource-drawer" aria-hidden="true">
+    <div class="resource-drawer-header">
+      <h2>Resources</h2>
+      <button id="close-resource-drawer" type="button" aria-label="Close resources">X</button>
+    </div>
+    <div class="resource-drawer-body">
+      <ul id="resource-link-list" class="resource-link-list"></ul>
+      <form id="resource-form" class="resource-form">
+        <label for="resource-title">Resource Title</label>
+        <input id="resource-title" name="resourceTitle" type="text" required />
+        <label for="resource-url">Resource URL</label>
+        <input id="resource-url" name="resourceUrl" type="url" required />
+        <button type="submit">Add Resource</button>
+        <button id="delete-resource" type="button" class="delete-resource-button">Delete Selected</button>
+      </form>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script type="module" src="dashboard.js"></script>
 </body>

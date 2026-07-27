@@ -8,7 +8,8 @@ export const SHEET_HEADERS = [
   'Order',
   'Cost ($)',
   'State',
-  'Date Completed'
+  'Date Completed',
+  'ResourceLinks'
 ];
 
 export function parseTaskRow(row = [], rowIndex) {
@@ -23,7 +24,8 @@ export function parseTaskRow(row = [], rowIndex) {
     order: row[6] || '',
     cost: parseFloat(row[7]) || 0,
     state: row[8] || 'Pending',
-    dateCompleted: row[9] || ''
+    dateCompleted: row[9] || '',
+    resourceLinks: row[10] || ''
   };
 }
 
@@ -38,7 +40,8 @@ export function formatTaskRow(task) {
     task.order || '',
     task.cost !== undefined && task.cost !== null ? String(task.cost) : '',
     task.state || 'Pending',
-    task.dateCompleted || ''
+    task.dateCompleted || '',
+    task.resourceLinks || ''
   ];
 }
 
@@ -90,6 +93,7 @@ export function getDefaultTask() {
     order: '',
     cost: 0,
     state: 'Pending',
-    dateCompleted: ''
+    dateCompleted: '',
+    resourceLinks: ''
   };
 }

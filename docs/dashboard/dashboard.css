@@ -116,6 +116,14 @@ body {
   cursor: pointer;
 }
 
+#project-list-button {
+  background: #7c3aed;
+}
+
+#project-list-button:hover {
+  background: #6d28d9;
+}
+
 .dashboard-filters {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -501,4 +509,224 @@ body {
 .form-actions button[type="submit"] {
   background: var(--primary);
   color: white;
+}
+
+.project-drawer {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 300px;
+  height: 100%;
+  background: var(--surface);
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  transition: right 0.3s ease;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+}
+
+.project-drawer.open {
+  right: 0;
+}
+
+.project-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.project-drawer-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.project-drawer-header button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.project-drawer-content {
+  padding: 0.75rem 1rem 1rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.project-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.project-drawer-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.04);
+}
+
+.project-drawer-main {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.project-id,
+.project-property,
+.project-area {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.project-property {
+  color: #c62828;
+}
+
+.project-description {
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.project-order {
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-weight: 800;
+  color: var(--primary);
+  min-width: 2.5rem;
+  text-align: right;
+}
+
+.project-drawer-empty {
+  color: var(--muted);
+  margin: 0;
+}
+
+.resource-drawer {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 300px;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  overflow-y: auto;
+  transition: right 0.3s ease;
+  z-index: 120;
+}
+
+.resource-drawer.open {
+  right: 0;
+}
+
+.resource-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.resource-drawer-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.resource-drawer-header button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.resource-drawer-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.resource-link-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resource-item {
+  list-style: disc;
+}
+
+.resource-item-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.resource-item-label input[type="radio"] {
+  margin-top: 0.2rem;
+}
+
+.resource-link-list a {
+  color: var(--primary);
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+.resource-empty {
+  color: var(--muted);
+}
+
+.resource-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resource-form input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+.resource-form button {
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.resource-form .delete-resource-button {
+  background: var(--danger);
+}
+
+.resource-form .delete-resource-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 420px) {
+  .resource-drawer {
+    width: 100%;
+    right: -100%;
+  }
 }
