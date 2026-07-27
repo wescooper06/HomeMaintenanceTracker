@@ -16,7 +16,11 @@ const state = {
   selectedIds: new Set(),
   editingRowIndex: null,
   costChart: null,
-  countChart: null
+  countChart: null,
+  projectDrawerOpen: false,
+  resourceDrawerOpen: false,
+  selectedResourceRowIndex: null,
+  selectedResourceIndex: null
 };
 
 const elements = {
@@ -30,10 +34,21 @@ const elements = {
   
   selectAll: document.querySelector('#select-all'),
   refreshButton: document.querySelector('#refresh-data'),
+  projectListButton: document.querySelector('#project-list-button'),
   deleteSelected: document.querySelector('#delete-selected'),
   openAddForm: document.querySelector('#open-add-form'),
   taskModal: document.querySelector('#task-modal'),
   closeModal: document.querySelector('#close-modal'),
+  projectDrawer: document.querySelector('#projectDrawer'),
+  closeProjectDrawer: document.querySelector('#close-project-drawer'),
+  projectDrawerContent: document.querySelector('#project-drawer-content'),
+  resourceDrawer: document.querySelector('#resourceDrawer'),
+  closeResourceDrawer: document.querySelector('#close-resource-drawer'),
+  resourceList: document.querySelector('#resource-link-list'),
+  resourceForm: document.querySelector('#resource-form'),
+  resourceTitleInput: document.querySelector('#resource-title'),
+  resourceUrlInput: document.querySelector('#resource-url'),
+  resourceDeleteButton: document.querySelector('#delete-resource'),
   taskForm: document.querySelector('#task-form'),
   taskIdDisplay: document.querySelector('#task-form input[name="idDisplay"]'),
   modalTitle: document.querySelector('#modal-title'),
@@ -49,8 +64,14 @@ function initialize() {
   elements.search.addEventListener('input', onFilterChange);
   elements.selectAll.addEventListener('change', onSelectAll);
   elements.refreshButton.addEventListener('click', loadTasks);
+  if (elements.projectListButton) elements.projectListButton.addEventListener('click', toggleProjectDrawer);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask(), 'add'));
   elements.closeModal.addEventListener('click', closeTaskModal);
+  if (elements.closeProjectDrawer) elements.closeProjectDrawer.addEventListener('click', closeProjectDrawer);
+  if (elements.closeResourceDrawer) elements.closeResourceDrawer.addEventListener('click', closeResourceDrawer);
+  if (elements.resourceForm) elements.resourceForm.addEventListener('submit', onAddResourceSubmit);
+  if (elements.resourceList) elements.resourceList.addEventListener('change', onResourceSelectionChange);
+  if (elements.resourceDeleteButton) elements.resourceDeleteButton.addEventListener('click', onDeleteResourceClick);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
   elements.deleteSelected.addEventListener('click', deleteSelectedRows);
   elements.tableBody.addEventListener('click', onTableClick);
@@ -74,6 +95,13 @@ async function loadTasks() {
     populateTaskFormOptions();
     renderTable();
     renderCharts();
+    if (state.projectDrawerOpen) {
+      renderProjectList(tasks);
+    }
+    if (state.resourceDrawerOpen) {
+      const selectedTask = state.tasks.find((task) => task.rowIndex === state.selectedResourceRowIndex);
+      renderResourceList(selectedTask);
+    }
   } catch (error) {
     elements.tableBody.innerHTML = `<tr><td colspan="12">${error.message}</td></tr>`;
   }
@@ -602,6 +630,9 @@ function renderTable() {
   }
   if (!tasks.length) {
     elements.tableBody.innerHTML = '<tr><td colspan="14">No tasks found.</td></tr>';
+    if (state.projectDrawerOpen) {
+      renderProjectList(tasks);
+    }
     return;
   }
 
@@ -621,10 +652,238 @@ function renderTable() {
       <td data-field="dateCompleted">${task.dateCompleted || ''}</td>
       <td class="row-actions">
         <button type="button" class="edit-row" data-action="edit" data-row="${task.rowIndex}">Edit</button>
+        <button type="button" class="resource-row" data-action="resources" data-row="${task.rowIndex}">Resources</button>
         <button type="button" class="delete-row" data-action="delete" data-row="${task.rowIndex}">Delete</button>
       </td>
     </tr>
   `).join('');
+
+  if (state.projectDrawerOpen) {
+    renderProjectList(tasks);
+  }
+}
+
+function renderProjectList(tasks) {
+  if (!elements.projectDrawerContent) return;
+  const projectTasks = tasks
+    .filter((task) => String(task.order || '').trim() !== '')
+    .filter((task) => {
+      const stateValue = String(task.state || '').trim().toLowerCase();
+      return stateValue !== 'complete' && stateValue !== 'completed';
+    })
+    .slice()
+    .sort((a, b) => {
+      const leftOrder = Number(String(a.order || '').trim());
+      const rightOrder = Number(String(b.order || '').trim());
+      if (Number.isFinite(leftOrder) && Number.isFinite(rightOrder)) {
+        return leftOrder - rightOrder;
+      }
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+  if (!projectTasks.length) {
+    elements.projectDrawerContent.innerHTML = '<p class="project-drawer-empty">No tasks to show.</p>';
+    return;
+  }
+
+  elements.projectDrawerContent.innerHTML = `
+    <ul class="project-drawer-list">
+      ${projectTasks.map((task) => `
+        <li class="project-drawer-item">
+          <div class="project-drawer-main">
+            <span class="project-id">ID ${task.id || ''}</span>
+            <span class="project-property">${task.property || 'Unspecified'}: ${task.area || 'No area'}</span>
+            <span class="project-description">${task.description || ''}</span>
+          </div>
+          <span class="project-order">${task.order || ''}</span>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function openProjectDrawer() {
+  state.projectDrawerOpen = true;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.add('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'false');
+  }
+  renderProjectList(getFilteredTasks());
+}
+
+function closeProjectDrawer() {
+  state.projectDrawerOpen = false;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.remove('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function toggleProjectDrawer() {
+  if (state.projectDrawerOpen) {
+    closeProjectDrawer();
+  } else {
+    openProjectDrawer();
+  }
+}
+
+function parseResourceLinksValue(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getValidResources(task) {
+  return parseResourceLinksValue(task?.resourceLinks)
+    .filter((item) => item && typeof item === 'object')
+    .filter((item) => String(item.title || '').trim() && String(item.url || '').trim());
+}
+
+function updateDeleteButtonState(count) {
+  if (!elements.resourceDeleteButton) return;
+  const hasSelection = Number.isInteger(state.selectedResourceIndex) && state.selectedResourceIndex >= 0;
+  elements.resourceDeleteButton.disabled = !hasSelection || !count;
+}
+
+function renderResourceList(task) {
+  if (!elements.resourceList) return;
+  const resources = getValidResources(task);
+
+  if (!Number.isInteger(state.selectedResourceIndex) || state.selectedResourceIndex < 0 || state.selectedResourceIndex >= resources.length) {
+    state.selectedResourceIndex = null;
+  }
+
+  if (!resources.length) {
+    elements.resourceList.innerHTML = '<li class="resource-empty">No resources yet.</li>';
+    updateDeleteButtonState(0);
+    return;
+  }
+
+  elements.resourceList.innerHTML = resources.map((item, index) => {
+    const title = String(item.title || '').trim();
+    const url = String(item.url || '').trim();
+    const checked = state.selectedResourceIndex === index ? 'checked' : '';
+    return `
+      <li class="resource-item">
+        <label class="resource-item-label">
+          <input type="radio" name="selected-resource" value="${index}" ${checked} />
+          <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+        </label>
+      </li>
+    `;
+  }).join('');
+  updateDeleteButtonState(resources.length);
+}
+
+function openResourceDrawer(task) {
+  state.resourceDrawerOpen = true;
+  state.selectedResourceRowIndex = task.rowIndex;
+  state.selectedResourceIndex = null;
+  if (elements.resourceDrawer) {
+    elements.resourceDrawer.classList.add('open');
+    elements.resourceDrawer.setAttribute('aria-hidden', 'false');
+  }
+  renderResourceList(task);
+}
+
+function closeResourceDrawer() {
+  state.resourceDrawerOpen = false;
+  state.selectedResourceRowIndex = null;
+  state.selectedResourceIndex = null;
+  if (elements.resourceDrawer) {
+    elements.resourceDrawer.classList.remove('open');
+    elements.resourceDrawer.setAttribute('aria-hidden', 'true');
+  }
+  if (elements.resourceForm) {
+    elements.resourceForm.reset();
+  }
+  updateDeleteButtonState(0);
+}
+
+async function addResource(task) {
+  const title = String(elements.resourceTitleInput?.value || '').trim();
+  const url = String(elements.resourceUrlInput?.value || '').trim();
+
+  if (!title) {
+    alert('Resource Title is required.');
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    alert('Resource URL must start with http:// or https://');
+    return;
+  }
+
+  const existing = getValidResources(task);
+  const updated = [...existing, { title, url }];
+  const resourceLinks = JSON.stringify(updated);
+
+  await updateTask(task.rowIndex, { resourceLinks });
+  task.resourceLinks = resourceLinks;
+
+  if (elements.resourceForm) {
+    elements.resourceForm.reset();
+  }
+  state.selectedResourceIndex = null;
+  renderResourceList(task);
+}
+
+function onResourceSelectionChange(event) {
+  const input = event.target.closest('input[name="selected-resource"]');
+  if (!input) return;
+  const index = Number(input.value);
+  state.selectedResourceIndex = Number.isInteger(index) ? index : null;
+  const task = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+  renderResourceList(task);
+}
+
+async function onDeleteResourceClick() {
+  const task = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+  if (!task) {
+    alert('Please select a task first.');
+    return;
+  }
+  const resources = getValidResources(task);
+  const index = state.selectedResourceIndex;
+  if (!Number.isInteger(index) || index < 0 || index >= resources.length) {
+    alert('Select a resource link to delete.');
+    return;
+  }
+
+  const updated = resources.filter((_, itemIndex) => itemIndex !== index);
+  const resourceLinks = JSON.stringify(updated);
+
+  try {
+    await updateTask(task.rowIndex, { resourceLinks });
+    task.resourceLinks = resourceLinks;
+    state.selectedResourceIndex = null;
+    await loadTasks();
+    const refreshed = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+    renderResourceList(refreshed || task);
+  } catch (error) {
+    alert(`Could not delete resource: ${error.message}`);
+  }
+}
+
+async function onAddResourceSubmit(event) {
+  event.preventDefault();
+  const task = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+  if (!task) {
+    alert('Please select a task first.');
+    return;
+  }
+  try {
+    await addResource(task);
+    await loadTasks();
+    const refreshed = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+    renderResourceList(refreshed || task);
+  } catch (error) {
+    alert(`Could not add resource: ${error.message}`);
+  }
 }
 
 async function onTableClick(event) {
@@ -654,6 +913,11 @@ async function onTableClick(event) {
       } catch (err) {
         alert(`Could not delete task: ${err.message}`);
       }
+      return;
+    }
+    if (action === 'resources' && task) {
+      openResourceDrawer(task);
+      return;
     }
     return;
   }
@@ -821,6 +1085,7 @@ async function onSubmitTaskForm(event) {
     property: elements.taskForm.property.value.trim(),
     area: elements.taskForm.area.value.trim(),
     category: elements.taskForm.category.value.trim(),
+    
     description: elements.taskForm.description.value.trim(),
     priority: elements.taskForm.priority.value,
     order: elements.taskForm.order.value.trim(),

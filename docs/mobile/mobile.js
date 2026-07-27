@@ -12,7 +12,11 @@ const state = {
     state: []
   },
   currentEdit: null,
-  orderSortDirection: null
+  orderSortDirection: null,
+  projectDrawerOpen: false,
+  resourceDrawerOpen: false,
+  selectedResourceRowIndex: null,
+  selectedResourceIndex: null
 };
 
 const elements = {
@@ -25,8 +29,19 @@ const elements = {
   taskContainer: document.querySelector('#task-container'),
   openAddForm: document.querySelector('#open-add-form'),
   sortOrderButton: document.querySelector('#sort-order'),
+  projectListButton: document.querySelector('#project-list-button'),
   taskModal: document.querySelector('#task-modal'),
   closeModal: document.querySelector('#close-modal'),
+  projectDrawer: document.querySelector('#projectDrawer'),
+  closeProjectDrawer: document.querySelector('#close-project-drawer'),
+  projectDrawerContent: document.querySelector('#project-drawer-content'),
+  resourceDrawer: document.querySelector('#resourceDrawer'),
+  closeResourceDrawer: document.querySelector('#close-resource-drawer'),
+  resourceList: document.querySelector('#resource-link-list'),
+  resourceForm: document.querySelector('#resource-form'),
+  resourceTitleInput: document.querySelector('#resource-title'),
+  resourceUrlInput: document.querySelector('#resource-url'),
+  resourceDeleteButton: document.querySelector('#delete-resource'),
   taskForm: document.querySelector('#task-form'),
   modalTitle: document.querySelector('#modal-title'),
   refreshButton: document.querySelector('#refresh-button'),
@@ -43,8 +58,14 @@ function initialize() {
   elements.filterArea.addEventListener('change', onFilterChange);
   elements.filterState.addEventListener('change', onFilterChange);
   elements.openAddForm.addEventListener('click', () => openTaskModal(getDefaultTask()));
+  if (elements.projectListButton) elements.projectListButton.addEventListener('click', toggleProjectDrawer);
   elements.sortOrderButton.addEventListener('click', onSortOrder);
   elements.closeModal.addEventListener('click', closeTaskModal);
+  if (elements.closeProjectDrawer) elements.closeProjectDrawer.addEventListener('click', closeProjectDrawer);
+  if (elements.closeResourceDrawer) elements.closeResourceDrawer.addEventListener('click', closeResourceDrawer);
+  if (elements.resourceForm) elements.resourceForm.addEventListener('submit', onAddResourceSubmit);
+  if (elements.resourceList) elements.resourceList.addEventListener('change', onResourceSelectionChange);
+  if (elements.resourceDeleteButton) elements.resourceDeleteButton.addEventListener('click', onDeleteResourceClick);
   elements.taskForm.addEventListener('submit', onSubmitTaskForm);
   elements.refreshButton.addEventListener('click', loadTasks);
   loadTasks();
@@ -56,6 +77,13 @@ async function loadTasks() {
     state.tasks = await getTasks();
     renderFilters();
     renderTasks();
+    if (state.projectDrawerOpen) {
+      renderProjectList(filterTasks());
+    }
+    if (state.resourceDrawerOpen) {
+      const selectedTask = state.tasks.find((task) => task.rowIndex === state.selectedResourceRowIndex);
+      renderResourceList(selectedTask);
+    }
   } catch (error) {
     elements.taskContainer.innerHTML = `<p class="error">${error.message}</p>`;
   }
@@ -190,6 +218,9 @@ function renderTasks() {
     elements.taskContainer.innerHTML = filteredTasks.length === 0
       ? '<p class="empty-state">No tasks matched the current filters.</p>'
       : filteredTasks.map((task) => renderTaskCard(task)).join('');
+    if (state.projectDrawerOpen) {
+      renderProjectList(filteredTasks);
+    }
     return;
   }
 
@@ -197,6 +228,233 @@ function renderTasks() {
   elements.taskContainer.innerHTML = Object.keys(grouped).length === 0
     ? '<p class="empty-state">No tasks matched the current filters.</p>'
     : Object.entries(grouped).map(([property, tasks]) => renderPropertyGroup(property, tasks)).join('');
+
+  if (state.projectDrawerOpen) {
+    renderProjectList(filteredTasks);
+  }
+}
+
+function renderProjectList(tasks) {
+  if (!elements.projectDrawerContent) return;
+  const projectTasks = tasks
+    .filter((task) => String(task.order || '').trim() !== '')
+    .filter((task) => {
+      const stateValue = String(task.state || '').trim().toLowerCase();
+      return stateValue !== 'complete' && stateValue !== 'completed';
+    })
+    .slice()
+    .sort((a, b) => {
+      const leftOrder = Number(String(a.order || '').trim());
+      const rightOrder = Number(String(b.order || '').trim());
+      if (Number.isFinite(leftOrder) && Number.isFinite(rightOrder)) {
+        return leftOrder - rightOrder;
+      }
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+  if (!projectTasks.length) {
+    elements.projectDrawerContent.innerHTML = '<p class="project-drawer-empty">No tasks to show.</p>';
+    return;
+  }
+
+  elements.projectDrawerContent.innerHTML = `
+    <ul class="project-drawer-list">
+      ${projectTasks.map((task) => `
+        <li class="project-drawer-item">
+          <div class="project-drawer-main">
+            <span class="project-id">ID ${task.id || ''}</span>
+            <span class="project-property">${task.property || 'Unspecified'}: ${task.area || 'No area'}</span>
+            <span class="project-description">${task.description || ''}</span>
+          </div>
+          <span class="project-order">${task.order || ''}</span>
+        </li>
+      `).join('')}
+    </ul>
+  `;
+}
+
+function openProjectDrawer() {
+  state.projectDrawerOpen = true;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.add('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'false');
+  }
+  renderProjectList(filterTasks());
+}
+
+function closeProjectDrawer() {
+  state.projectDrawerOpen = false;
+  if (elements.projectDrawer) {
+    elements.projectDrawer.classList.remove('open');
+    elements.projectDrawer.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function toggleProjectDrawer() {
+  if (state.projectDrawerOpen) {
+    closeProjectDrawer();
+  } else {
+    openProjectDrawer();
+  }
+}
+
+function parseResourceLinksValue(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function getValidResources(task) {
+  return parseResourceLinksValue(task?.resourceLinks)
+    .filter((item) => item && typeof item === 'object')
+    .filter((item) => String(item.title || '').trim() && String(item.url || '').trim());
+}
+
+function updateDeleteButtonState(count) {
+  if (!elements.resourceDeleteButton) return;
+  const hasSelection = Number.isInteger(state.selectedResourceIndex) && state.selectedResourceIndex >= 0;
+  elements.resourceDeleteButton.disabled = !hasSelection || !count;
+}
+
+function renderResourceList(task) {
+  if (!elements.resourceList) return;
+  const resources = getValidResources(task);
+
+  if (!Number.isInteger(state.selectedResourceIndex) || state.selectedResourceIndex < 0 || state.selectedResourceIndex >= resources.length) {
+    state.selectedResourceIndex = null;
+  }
+
+  if (!resources.length) {
+    elements.resourceList.innerHTML = '<li class="resource-empty">No resources yet.</li>';
+    updateDeleteButtonState(0);
+    return;
+  }
+
+  elements.resourceList.innerHTML = resources.map((item, index) => {
+    const title = String(item.title || '').trim();
+    const url = String(item.url || '').trim();
+    const checked = state.selectedResourceIndex === index ? 'checked' : '';
+    return `
+      <li class="resource-item">
+        <label class="resource-item-label">
+          <input type="radio" name="selected-resource" value="${index}" ${checked} />
+          <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
+        </label>
+      </li>
+    `;
+  }).join('');
+  updateDeleteButtonState(resources.length);
+}
+
+function openResourceDrawer(task) {
+  state.resourceDrawerOpen = true;
+  state.selectedResourceRowIndex = task.rowIndex;
+  state.selectedResourceIndex = null;
+  if (elements.resourceDrawer) {
+    elements.resourceDrawer.classList.add('open');
+    elements.resourceDrawer.setAttribute('aria-hidden', 'false');
+  }
+  renderResourceList(task);
+}
+
+function closeResourceDrawer() {
+  state.resourceDrawerOpen = false;
+  state.selectedResourceRowIndex = null;
+  state.selectedResourceIndex = null;
+  if (elements.resourceDrawer) {
+    elements.resourceDrawer.classList.remove('open');
+    elements.resourceDrawer.setAttribute('aria-hidden', 'true');
+  }
+  if (elements.resourceForm) {
+    elements.resourceForm.reset();
+  }
+  updateDeleteButtonState(0);
+}
+
+async function addResource(task) {
+  const title = String(elements.resourceTitleInput?.value || '').trim();
+  const url = String(elements.resourceUrlInput?.value || '').trim();
+
+  if (!title) {
+    alert('Resource Title is required.');
+    return;
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    alert('Resource URL must start with http:// or https://');
+    return;
+  }
+
+  const existing = getValidResources(task);
+  const updated = [...existing, { title, url }];
+  const resourceLinks = JSON.stringify(updated);
+
+  await updateTask(task.rowIndex, { resourceLinks });
+  task.resourceLinks = resourceLinks;
+
+  if (elements.resourceForm) {
+    elements.resourceForm.reset();
+  }
+  state.selectedResourceIndex = null;
+  renderResourceList(task);
+}
+
+function onResourceSelectionChange(event) {
+  const input = event.target.closest('input[name="selected-resource"]');
+  if (!input) return;
+  const index = Number(input.value);
+  state.selectedResourceIndex = Number.isInteger(index) ? index : null;
+  const task = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+  renderResourceList(task);
+}
+
+async function onDeleteResourceClick() {
+  const task = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+  if (!task) {
+    alert('Please select a task first.');
+    return;
+  }
+  const resources = getValidResources(task);
+  const index = state.selectedResourceIndex;
+  if (!Number.isInteger(index) || index < 0 || index >= resources.length) {
+    alert('Select a resource link to delete.');
+    return;
+  }
+
+  const updated = resources.filter((_, itemIndex) => itemIndex !== index);
+  const resourceLinks = JSON.stringify(updated);
+
+  try {
+    await updateTask(task.rowIndex, { resourceLinks });
+    task.resourceLinks = resourceLinks;
+    state.selectedResourceIndex = null;
+    await loadTasks();
+    const refreshed = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+    renderResourceList(refreshed || task);
+  } catch (error) {
+    alert(`Could not delete resource: ${error.message}`);
+  }
+}
+
+async function onAddResourceSubmit(event) {
+  event.preventDefault();
+  const task = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+  if (!task) {
+    alert('Please select a task first.');
+    return;
+  }
+  try {
+    await addResource(task);
+    await loadTasks();
+    const refreshed = state.tasks.find((item) => item.rowIndex === state.selectedResourceRowIndex);
+    renderResourceList(refreshed || task);
+  } catch (error) {
+    alert(`Could not add resource: ${error.message}`);
+  }
 }
 
 function renderPropertyGroup(property, tasks) {
@@ -232,6 +490,7 @@ function renderTaskCard(task) {
       </div>
       <div class="task-row task-buttons">
         <button type="button" class="cta-button" data-action="edit" data-row="${task.rowIndex}">Edit</button>
+        <button type="button" class="cta-button" data-action="resources" data-row="${task.rowIndex}">Resources</button>
         <button type="button" class="cta-button complete-button" data-action="complete" data-row="${task.rowIndex}">Mark Complete</button>
         <button type="button" class="cta-button delete-button" data-action="delete" data-row="${task.rowIndex}">Delete</button>
       </div>
@@ -319,6 +578,10 @@ async function onTaskAction(event) {
       await deleteTask(rowIndex);
       await loadTasks();
     }
+  }
+
+  if (action === 'resources' && task) {
+    openResourceDrawer(task);
   }
 }
 

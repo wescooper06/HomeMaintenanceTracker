@@ -476,7 +476,143 @@ textarea {
   text-align: right;
 }
 
+.project-drawer-side {
+  display: grid;
+  justify-items: end;
+  gap: 0.4rem;
+}
+
+.project-edit-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.project-edit-button:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
 .project-drawer-empty {
   color: var(--muted);
   margin: 0;
+}
+
+.resource-drawer {
+  position: fixed;
+  top: 0;
+  right: -300px;
+  width: 300px;
+  height: 100%;
+  background: white;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  overflow-y: auto;
+  transition: right 0.3s ease;
+  z-index: 40;
+}
+
+.resource-drawer.open {
+  right: 0;
+}
+
+.resource-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.resource-drawer-header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.resource-drawer-header button {
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.resource-drawer-body {
+  display: grid;
+  gap: 1rem;
+}
+
+.resource-link-list {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resource-item {
+  list-style: disc;
+}
+
+.resource-item-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.resource-item-label input[type="radio"] {
+  margin-top: 0.2rem;
+}
+
+.resource-link-list a {
+  color: var(--primary);
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+.resource-empty {
+  color: var(--muted);
+}
+
+.resource-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resource-form input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  background: var(--background);
+  color: var(--text);
+}
+
+.resource-form button {
+  border: none;
+  border-radius: 999px;
+  background: var(--primary);
+  color: white;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+
+.resource-form .delete-resource-button {
+  background: var(--danger);
+}
+
+.resource-form .delete-resource-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 420px) {
+  .resource-drawer {
+    width: 100%;
+    right: -100%;
+  }
 }
