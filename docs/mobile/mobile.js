@@ -222,9 +222,9 @@ function renderTaskCard(task) {
           <small class="meta">${task.area ? `${task.area} · ` : ''}${task.category || 'No category'}</small>
         </div>
         <div class="badges">
-          <span class="badge badge-priority badge-priority-${normalizePriorityClass(task.priority)}">Priority: ${normalizePriority(task.priority)}</span>
-          <span class="badge badge-order">Order: ${task.order || '—'}</span>
-          <span class="badge badge-state badge-state-${normalizeState(task.state)}">State: ${task.state || 'Pending'}</span>
+          <span class="badge badge-priority badge-priority-${normalizePriorityClass(task.priority)}">${normalizePriority(task.priority)}</span>
+          <span class="badge badge-order">${task.order || '—'}</span>
+          <span class="badge badge-state badge-state-${normalizeState(task.state)}">${task.state || 'Pending'}</span>
         </div>
       </div>
       <div class="task-row">
