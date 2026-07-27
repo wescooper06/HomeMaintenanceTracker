@@ -292,10 +292,15 @@ body {
 .icon-grid button .icon-label {
   display: block;
   text-align: center;
-  white-space: normal;
+  white-space: nowrap;
   overflow: visible;
   text-overflow: unset;
+  line-height: 1.1;
+}
 
+.state-icons .icon-button svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .icon-grid button:hover {

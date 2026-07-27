@@ -468,9 +468,10 @@ function getStateIconSvg(value) {
     case 'in progress':
     case 'in-progress':
       return `
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <path d="M3 12a9 9 0 0 0 9 9" stroke-linecap="round" stroke-linejoin="round" />
-          <path d="M12 3v4" stroke-linecap="round" stroke-linejoin="round" />
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M6 3h12M6 21h12" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M8 3c0 4 4 5 4 9s-4 5-4 9" stroke-linecap="round" stroke-linejoin="round" />
+          <path d="M16 3c0 4-4 5-4 9s4 5 4 9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
       `;
     case 'not started':
